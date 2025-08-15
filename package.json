@@ -9,8 +9,10 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "dotenv": "^17.2.1",
     "expo": "~53.0.20",
     "expo-status-bar": "~2.2.3",
+    "firebase": "^12.1.0",
     "nativewind": "^4.1.23",
     "prettier-plugin-tailwindcss": "^0.5.14",
     "react": "19.0.0",
