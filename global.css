@@ -1,3 +1,56 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom styles for React Native */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  /* Custom focus styles */
+  .focus\:border-black:focus {
+    border-color: #000000;
+  }
+
+  /* Custom spacing utilities for React Native */
+  .space-y-2 > * + * {
+    margin-top: 0.5rem;
+  }
+
+  .space-y-3 > * + * {
+    margin-top: 0.75rem;
+  }
+
+  .space-y-4 > * + * {
+    margin-top: 1rem;
+  }
+
+  .space-y-6 > * + * {
+    margin-top: 1.5rem;
+  }
+
+  .space-x-4 > * + * {
+    margin-left: 1rem;
+  }
+}
+
+@layer utilities {
+  /* Custom utilities for better mobile experience */
+  .tracking-tight {
+    letter-spacing: -0.025em;
+  }
+
+  .leading-6 {
+    line-height: 1.5rem;
+  }
+
+  /* Smooth transitions */
+  .transition-colors {
+    transition-property: color, background-color, border-color;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+}
