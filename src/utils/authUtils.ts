@@ -1,149 +1,107 @@
+import { account } from "./appwriteConfig";
 import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  User,
-  setPersistence,
-  browserLocalPersistence,
-} from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import { auth, db } from "./firebaseConfig";
-
-// Enable persistence for auth state
-auth.setPersistence ? auth.setPersistence(browserLocalPersistence) : null;
+  databases,
+  APPWRITE_DATABASE_ID,
+  USERS_COLLECTION_ID,
+} from "./appwriteConfig";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ID } from "appwrite";
 
 interface UserProfile {
   displayName: string;
-  role: "student" | "teacher";
+  role: string;
   department: string;
-  semester: string;
+  semester?: string;
   phoneNumber?: string;
   profileComplete: boolean;
-  createdAt: string;
-  updatedAt: string;
+  email: string;
 }
 
-export const signUp = async (
-  email: string,
-  password: string,
-  profile: Omit<UserProfile, "createdAt" | "updatedAt">,
-): Promise<User> => {
+export const login = async (email: string, password: string) => {
   try {
-    // Create user account
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
-      email,
-      password,
-    );
-    const user = userCredential.user;
-
-    // Create user profile in Firestore
-    const userProfile: UserProfile = {
-      ...profile,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    await setDoc(doc(db, "users", user.uid), userProfile);
-
+    await account.createEmailPasswordSession(email, password);
+    const user = await account.get();
     return user;
   } catch (error: any) {
-    console.error("Sign up error:", error);
-
-    // Provide user-friendly error messages
-    switch (error.code) {
-      case "auth/email-already-in-use":
-        throw new Error("An account with this email already exists");
-      case "auth/invalid-email":
-        throw new Error("Please enter a valid email address");
-      case "auth/weak-password":
-        throw new Error("Password should be at least 6 characters long");
-      case "auth/network-request-failed":
-        throw new Error("Network error. Please check your connection");
-      default:
-        throw new Error(error.message || "Failed to create account");
-    }
+    throw new Error(error.message || "Login failed");
   }
 };
 
-export const login = async (email: string, password: string): Promise<User> => {
+export const signup = async (
+  email: string,
+  password: string,
+  displayName: string,
+) => {
   try {
-    const userCredential = await signInWithEmailAndPassword(
-      auth,
-      email,
-      password,
+    const userId = ID.unique();
+    await account.create(userId, email, password, displayName);
+    await account.createEmailPasswordSession(email, password);
+    const user = await account.get();
+    await databases.createDocument(
+      APPWRITE_DATABASE_ID,
+      USERS_COLLECTION_ID,
+      userId,
+      {
+        displayName,
+        email,
+        role: "student",
+        department: "",
+        semester: "",
+        phoneNumber: "",
+        profileComplete: false,
+      },
+      ["role:member"],
     );
-    return userCredential.user;
+    return user;
   } catch (error: any) {
-    console.error("Login error:", error);
-
-    // Provide user-friendly error messages
-    switch (error.code) {
-      case "auth/user-not-found":
-        throw new Error("No account found with this email address");
-      case "auth/wrong-password":
-        throw new Error("Incorrect password");
-      case "auth/invalid-email":
-        throw new Error("Please enter a valid email address");
-      case "auth/user-disabled":
-        throw new Error("This account has been disabled");
-      case "auth/too-many-requests":
-        throw new Error("Too many failed attempts. Please try again later");
-      case "auth/network-request-failed":
-        throw new Error("Network error. Please check your connection");
-      default:
-        throw new Error(error.message || "Failed to sign in");
-    }
+    throw new Error(error.message || "Signup failed");
   }
 };
 
-export const logout = async (): Promise<void> => {
+export const logout = async () => {
   try {
-    await signOut(auth);
+    await account.deleteSession("current");
+    await AsyncStorage.removeItem("user");
   } catch (error: any) {
-    console.error("Logout error:", error);
-    throw new Error("Failed to sign out");
+    throw new Error(error.message || "Logout failed");
   }
 };
 
 export const getCurrentUserProfile = async (): Promise<UserProfile | null> => {
   try {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      return null;
-    }
-
-    const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-    if (userDoc.exists()) {
-      return userDoc.data() as UserProfile;
-    }
-
-    return null;
-  } catch (error) {
+    const user = await account.get();
+    const doc = await databases.getDocument(
+      APPWRITE_DATABASE_ID,
+      USERS_COLLECTION_ID,
+      user.$id,
+    );
+    return {
+      displayName: doc.displayName,
+      role: doc.role,
+      department: doc.department,
+      semester: doc.semester,
+      phoneNumber: doc.phoneNumber,
+      profileComplete: doc.profileComplete,
+      email: doc.email,
+    };
+  } catch (error: any) {
     console.error("Error fetching user profile:", error);
     return null;
   }
 };
 
 export const updateUserProfile = async (
-  profileData: Partial<Omit<UserProfile, "createdAt" | "updatedAt">>,
-): Promise<void> => {
+  userId: string,
+  profileData: UserProfile,
+) => {
   try {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      throw new Error("No authenticated user");
-    }
-
-    const updatedData = {
-      ...profileData,
-      updatedAt: new Date().toISOString(),
-    };
-
-    await setDoc(doc(db, "users", currentUser.uid), updatedData, {
-      merge: true,
-    });
+    await databases.updateDocument(
+      APPWRITE_DATABASE_ID,
+      USERS_COLLECTION_ID,
+      userId,
+      profileData,
+    );
   } catch (error: any) {
-    console.error("Error updating profile:", error);
-    throw new Error("Failed to update profile");
+    throw new Error(error.message || "Failed to update profile");
   }
 };

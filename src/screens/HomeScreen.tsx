@@ -8,9 +8,13 @@ import {
   RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { logout } from "../utils/authUtils";
-import { auth, db } from "../utils/firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../types/navigation";
+import { logout, getCurrentUserProfile } from "../utils/authUtils";
+import { account } from "../utils/appwriteConfig";
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface UserProfile {
   displayName: string;
@@ -18,20 +22,35 @@ interface UserProfile {
   department: string;
   semester?: string;
   phoneNumber?: string;
+  profileComplete: boolean;
+}
+
+interface QuickAction {
+  id: string;
+  title: string;
+  subtitle: string;
+  icon: string;
+  onPress: () => void;
 }
 
 export default function HomeScreen() {
+  const navigation = useNavigation<NavigationProp>();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchUserProfile = async () => {
     try {
-      if (auth.currentUser) {
-        const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
-        if (userDoc.exists()) {
-          setUserProfile(userDoc.data() as UserProfile);
-        }
+      const profile = await getCurrentUserProfile();
+      if (profile) {
+        setUserProfile({
+          displayName: profile.displayName,
+          role: profile.role,
+          department: profile.department,
+          semester: profile.semester,
+          phoneNumber: profile.phoneNumber,
+          profileComplete: profile.profileComplete,
+        });
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
@@ -76,7 +95,25 @@ export default function HomeScreen() {
       .substring(0, 2);
   };
 
-  const quickActions = [
+  const quickActions: QuickAction[] = [
+    {
+      id: "documents",
+      title: "View Documents",
+      subtitle: "Access shared notes and resources",
+      icon: "📚",
+      onPress: () => navigation.navigate("Documents"),
+    },
+    ...(userProfile?.role === "teacher"
+      ? [
+          {
+            id: "upload",
+            title: "Upload Document",
+            subtitle: "Share resources with students",
+            icon: "📤",
+            onPress: () => navigation.navigate("Upload"),
+          },
+        ]
+      : []),
     {
       id: "courses",
       title: "View Courses",
@@ -143,7 +180,6 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
       <View className="px-6 pt-4 pb-6">
         <View className="flex-row items-center justify-between">
           <View className="flex-1">
@@ -154,8 +190,6 @@ export default function HomeScreen() {
               Welcome back, {userProfile?.displayName?.split(" ")[0] || "User"}!
             </Text>
           </View>
-
-          {/* User Avatar */}
           <TouchableOpacity
             className="w-12 h-12 bg-black rounded-full items-center justify-center"
             activeOpacity={0.8}
@@ -174,7 +208,6 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       </View>
-
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -182,7 +215,6 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Profile Info Card */}
         <View className="px-6 mb-6">
           <View className="p-4 bg-gray-50 rounded-xl border border-gray-100">
             <View className="flex-row items-center mb-2">
@@ -198,8 +230,6 @@ export default function HomeScreen() {
             </Text>
           </View>
         </View>
-
-        {/* Quick Stats Cards */}
         <View className="px-6 mb-6">
           <View className="flex-row space-x-4">
             <View className="flex-1 p-4 bg-gray-50 rounded-xl border border-gray-100">
@@ -212,8 +242,6 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
-
-        {/* Quick Actions */}
         <View className="px-6 mb-6">
           <Text className="text-lg font-semibold text-black mb-4">
             Quick Actions
@@ -246,8 +274,6 @@ export default function HomeScreen() {
             ))}
           </View>
         </View>
-
-        {/* Recent Activity */}
         <View className="px-6 mb-6">
           <Text className="text-lg font-semibold text-black mb-4">
             Recent Activity
@@ -279,8 +305,6 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
-
-      {/* Footer with Logout */}
       <View className="px-6 py-4 border-t border-gray-100">
         <TouchableOpacity
           className="w-full h-12 border border-gray-300 rounded-lg items-center justify-center active:bg-gray-50"

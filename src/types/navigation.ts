@@ -5,5 +5,8 @@ export type RootStackParamList = {
     password?: string;
     isExistingUser?: boolean;
   };
+  Main: undefined;
   Home: undefined;
+  Documents: undefined;
+  Upload: undefined;
 };
