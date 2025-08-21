@@ -179,19 +179,19 @@ export default function HomeScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="px-6 pt-4 pb-6">
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <View className="px-6 pt-6 pb-4">
         <View className="flex-row items-center justify-between">
           <View className="flex-1">
-            <Text className="text-2xl font-black text-black tracking-tight">
+            <Text className="text-2xl font-bold text-gray-900 tracking-tight">
               College Hub
             </Text>
-            <Text className="text-gray-500 text-sm mt-1">
-              Welcome back, {userProfile?.displayName?.split(" ")[0] || "User"}!
+            <Text className="text-gray-600 text-sm mt-1">
+              Welcome back, {userProfile?.displayName?.split(" ")[0] || "User"}
             </Text>
           </View>
           <TouchableOpacity
-            className="w-12 h-12 bg-black rounded-full items-center justify-center"
+            className="w-10 h-10 bg-gray-900 rounded-lg items-center justify-center shadow-sm"
             activeOpacity={0.8}
             onPress={() =>
               Alert.alert(
@@ -200,7 +200,7 @@ export default function HomeScreen() {
               )
             }
           >
-            <Text className="text-white font-semibold text-sm">
+            <Text className="text-white font-medium text-xs">
               {userProfile?.displayName
                 ? getInitials(userProfile.displayName)
                 : "U"}
@@ -216,10 +216,10 @@ export default function HomeScreen() {
         }
       >
         <View className="px-6 mb-6">
-          <View className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+          <View className="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
             <View className="flex-row items-center mb-2">
-              <View className="w-3 h-3 bg-green-500 rounded-full mr-2" />
-              <Text className="font-semibold text-black">Profile Active</Text>
+              <View className="w-2 h-2 bg-green-500 rounded-full mr-2" />
+              <Text className="font-medium text-gray-900">Profile Active</Text>
             </View>
             <Text className="text-gray-600 text-sm">
               {userProfile?.role === "student" ? "Student" : "Teacher"} •{" "}
@@ -231,71 +231,75 @@ export default function HomeScreen() {
           </View>
         </View>
         <View className="px-6 mb-6">
-          <View className="flex-row space-x-4">
-            <View className="flex-1 p-4 bg-gray-50 rounded-xl border border-gray-100">
-              <Text className="text-2xl font-bold text-black">0</Text>
-              <Text className="text-gray-600 text-sm mt-1">Active Courses</Text>
+          <View className="flex-row space-x-3">
+            <View className="flex-1 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+              <Text className="text-2xl font-bold text-gray-900">0</Text>
+              <Text className="text-gray-600 text-xs mt-1 font-medium">
+                Active Courses
+              </Text>
             </View>
-            <View className="flex-1 p-4 bg-gray-50 rounded-xl border border-gray-100">
-              <Text className="text-2xl font-bold text-black">0</Text>
-              <Text className="text-gray-600 text-sm mt-1">Assignments</Text>
+            <View className="flex-1 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+              <Text className="text-2xl font-bold text-gray-900">0</Text>
+              <Text className="text-gray-600 text-xs mt-1 font-medium">
+                Assignments
+              </Text>
             </View>
           </View>
         </View>
         <View className="px-6 mb-6">
-          <Text className="text-lg font-semibold text-black mb-4">
+          <Text className="text-lg font-semibold text-gray-900 mb-4">
             Quick Actions
           </Text>
-          <View className="space-y-3">
+          <View className="space-y-2">
             {quickActions.map((action) => (
               <TouchableOpacity
                 key={action.id}
-                className="p-4 bg-white border border-gray-200 rounded-xl active:bg-gray-50"
+                className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm active:bg-gray-50"
                 activeOpacity={0.7}
                 onPress={action.onPress}
               >
                 <View className="flex-row items-center">
-                  <View className="w-10 h-10 bg-black rounded-lg items-center justify-center mr-3">
-                    <Text className="text-white font-semibold">
-                      {action.icon}
-                    </Text>
+                  <View className="w-9 h-9 bg-gray-900 rounded-md items-center justify-center mr-3">
+                    <Text className="text-white text-sm">{action.icon}</Text>
                   </View>
                   <View className="flex-1">
-                    <Text className="font-semibold text-black">
+                    <Text className="font-medium text-gray-900">
                       {action.title}
                     </Text>
-                    <Text className="text-gray-500 text-sm">
+                    <Text className="text-gray-500 text-xs">
                       {action.subtitle}
                     </Text>
                   </View>
-                  <Text className="text-gray-400">›</Text>
+                  <View className="w-5 h-5 items-center justify-center">
+                    <Text className="text-gray-400 text-lg">›</Text>
+                  </View>
                 </View>
               </TouchableOpacity>
             ))}
           </View>
         </View>
         <View className="px-6 mb-6">
-          <Text className="text-lg font-semibold text-black mb-4">
+          <Text className="text-lg font-semibold text-gray-900 mb-4">
             Recent Activity
           </Text>
-          <View className="space-y-3">
+          <View className="space-y-2">
             {recentActivities.map((activity) => (
               <View
                 key={activity.id}
-                className="p-4 bg-gray-50 rounded-xl border border-gray-100"
+                className="p-4 bg-white rounded-lg border border-gray-200 shadow-sm"
               >
                 <View className="flex-row items-start">
                   <View
-                    className={`w-2 h-2 rounded-full mt-2 mr-3 ${activity.isActive ? "bg-black" : "bg-gray-400"}`}
+                    className={`w-2 h-2 rounded-full mt-2 mr-3 ${activity.isActive ? "bg-gray-900" : "bg-gray-400"}`}
                   />
                   <View className="flex-1">
-                    <Text className="font-medium text-black">
+                    <Text className="font-medium text-gray-900 text-sm">
                       {activity.title}
                     </Text>
-                    <Text className="text-gray-600 text-sm">
+                    <Text className="text-gray-600 text-xs">
                       {activity.subtitle}
                     </Text>
-                    <Text className="text-gray-400 text-xs mt-1">
+                    <Text className="text-gray-500 text-xs mt-1">
                       {activity.timestamp}
                     </Text>
                   </View>
@@ -305,13 +309,13 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
-      <View className="px-6 py-4 border-t border-gray-100">
+      <View className="px-6 py-4 border-t border-gray-200 bg-white">
         <TouchableOpacity
-          className="w-full h-12 border border-gray-300 rounded-lg items-center justify-center active:bg-gray-50"
+          className="w-full h-11 border border-gray-300 rounded-md items-center justify-center active:bg-gray-50"
           onPress={handleLogout}
           activeOpacity={0.7}
         >
-          <Text className="text-gray-700 font-medium text-base">Sign Out</Text>
+          <Text className="text-gray-700 font-medium text-sm">Sign Out</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

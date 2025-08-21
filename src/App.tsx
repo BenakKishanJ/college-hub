@@ -13,6 +13,7 @@ import UploadScreen from "./screens/UploadScreen";
 import { account } from "./utils/appwriteConfig";
 import { getCurrentUserProfile } from "./utils/authUtils";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import PingAppwrite from "./screens/PingAppwrite";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -39,9 +40,24 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { backgroundColor: "#fff", borderTopColor: "#e5e7eb" },
-        tabBarActiveTintColor: "#000",
+        tabBarStyle: {
+          backgroundColor: "#ffffff",
+          borderTopColor: "#e5e7eb",
+          borderTopWidth: 1,
+          paddingTop: 8,
+          paddingBottom: 8,
+          height: 70,
+        },
+        tabBarActiveTintColor: "#111827",
         tabBarInactiveTintColor: "#6b7280",
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "500",
+          marginTop: 4,
+        },
+        tabBarIconStyle: {
+          marginTop: 2,
+        },
       }}
     >
       <Tab.Screen
@@ -126,9 +142,18 @@ export default function App() {
   if (loading || initializing) {
     return (
       <SafeAreaProvider>
-        <View className="flex-1 justify-center items-center bg-white">
-          <ActivityIndicator size="large" color="#000000" />
-          <Text className="text-gray-600 mt-4 text-base">Loading...</Text>
+        <View className="flex-1 justify-center items-center bg-gray-50">
+          <View className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 mx-6">
+            <View className="items-center">
+              <View className="w-16 h-16 bg-gray-900 rounded-2xl items-center justify-center mb-6">
+                <Text className="text-white text-2xl font-bold">CH</Text>
+              </View>
+              <ActivityIndicator size="large" color="#111827" />
+              <Text className="text-gray-600 mt-4 text-sm font-medium">
+                Loading your profile...
+              </Text>
+            </View>
+          </View>
         </View>
       </SafeAreaProvider>
     );
@@ -153,11 +178,14 @@ export default function App() {
               <Stack.Screen name="Documents" component={DocumentsScreen} />
             </>
           ) : user ? (
-            <Stack.Screen
-              name="ProfileSetup"
-              component={ProfileSetupScreen}
-              initialParams={{ isExistingUser: true }}
-            />
+            <>
+              <Stack.Screen
+                name="ProfileSetup"
+                component={ProfileSetupScreen}
+                initialParams={{ isExistingUser: true }}
+              />
+              <Stack.Screen name="PingAppwrite" component={PingAppwrite} />
+            </>
           ) : (
             <>
               <Stack.Screen name="Login" component={LoginScreen} />
@@ -165,6 +193,7 @@ export default function App() {
                 name="ProfileSetup"
                 component={ProfileSetupScreen}
               />
+              <Stack.Screen name="PingAppwrite" component={PingAppwrite} />
             </>
           )}
         </Stack.Navigator>

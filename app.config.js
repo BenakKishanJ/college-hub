@@ -1,8 +1,8 @@
-import 'dotenv/config';
+import "dotenv/config";
 
 export default {
   expo: {
-    name: "College Hub",
+    name: "com.drait.college_hub",
     slug: "college-hub",
     version: "1.0.0",
     orientation: "portrait",
@@ -11,24 +11,24 @@ export default {
     splash: {
       image: "./assets/splash-icon.png",
       resizeMode: "contain",
-      backgroundColor: "#ffffff"
+      backgroundColor: "#ffffff",
     },
     assetBundlePatterns: ["**/*"],
     ios: {
-      supportsTablet: true
+      supportsTablet: true,
     },
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
-        backgroundColor: "#ffffff"
-      }
+        backgroundColor: "#ffffff",
+      },
     },
     web: {
-      favicon: "./assets/favicon.png"
+      favicon: "./assets/favicon.png",
     },
     extra: {
       appwriteEndpoint: process.env.APPWRITE_ENDPOINT,
-      appwriteProjectId: process.env.APPWRITE_PROJECT_ID
-    }
-  }
+      appwriteProjectId: process.env.APPWRITE_PROJECT_ID,
+    },
+  },
 };

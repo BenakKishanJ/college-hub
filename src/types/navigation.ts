@@ -6,6 +6,7 @@ export type RootStackParamList = {
     isExistingUser?: boolean;
   };
   Main: undefined;
+  PingAppwrite: undefined;
   Home: undefined;
   Documents: undefined;
   Upload: undefined;

@@ -1,5 +1,5 @@
 {
-  "name": "college-hub",
+  "name": "com.drait.college_hub",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
@@ -23,6 +23,7 @@
     "prettier-plugin-tailwindcss": "^0.5.14",
     "react": "19.0.0",
     "react-native": "0.79.5",
+    "react-native-appwrite": "^0.11.0",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "4.11.1",

@@ -6,6 +6,7 @@ import {
   FlatList,
   Linking,
   Alert,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -89,7 +90,7 @@ export default function DocumentsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
+      <SafeAreaView className="flex-1 bg-gray-50">
         <View className="flex-1 justify-center items-center">
           <Text className="text-gray-600">Loading documents...</Text>
         </View>
@@ -98,52 +99,90 @@ export default function DocumentsScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="px-6 pt-4 pb-6">
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <View className="px-6 pt-6 pb-4">
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           className="mb-6 self-start p-2 -ml-2"
           activeOpacity={0.7}
         >
-          <Text className="text-black text-base">← Back</Text>
+          <Text className="text-gray-900 text-sm font-medium">← Back</Text>
         </TouchableOpacity>
-        <Text className="text-3xl font-black text-black mb-2 tracking-tight">
-          Documents
-        </Text>
-        <Text className="text-gray-500 text-base leading-6">
-          Browse available documents
-        </Text>
+        <View className="mb-6">
+          <Text className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">
+            Documents
+          </Text>
+          <Text className="text-gray-600 text-sm">
+            Browse and access available resources
+          </Text>
+        </View>
       </View>
+
       {error && (
-        <View className="px-6">
-          <Text className="text-red-600 text-center">{error}</Text>
+        <View className="px-6 mb-4">
+          <View className="p-3 bg-red-50 border border-red-200 rounded-md">
+            <Text className="text-red-600 text-sm text-center">{error}</Text>
+          </View>
         </View>
       )}
+
       <FlatList
         data={documents}
         keyExtractor={(item) => item.$id}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
+        showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <TouchableOpacity
-            className="px-6 py-4 bg-white border-b border-gray-100 active:bg-gray-50"
+            className="mb-3 p-4 bg-white border border-gray-200 rounded-lg shadow-sm active:bg-gray-50"
             onPress={() => openDocument(item.fileUrl)}
             activeOpacity={0.7}
           >
-            <Text className="font-semibold text-black">{item.title}</Text>
-            <Text className="text-gray-600 text-sm">
-              {item.category} •{" "}
-              {item.targets.departments.join(", ") || "All Departments"} •{" "}
-              {item.targets.semesters.join(", ") || "All Semesters"}
-            </Text>
-            <Text className="text-gray-400 text-xs mt-1">
-              Uploaded: {new Date(item.createdAt).toLocaleDateString()}
-            </Text>
+            <View className="flex-row items-start justify-between mb-2">
+              <View className="flex-1 mr-3">
+                <Text className="font-semibold text-gray-900 text-base mb-1">
+                  {item.title}
+                </Text>
+                <View className="flex-row items-center">
+                  <View className="px-2 py-1 bg-gray-100 rounded-md mr-2">
+                    <Text className="text-gray-700 text-xs font-medium">
+                      {item.category}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              <View className="w-8 h-8 bg-gray-900 rounded-md items-center justify-center">
+                <Text className="text-white text-sm">📄</Text>
+              </View>
+            </View>
+
+            <View className="space-y-1">
+              <Text className="text-gray-600 text-xs">
+                Departments: {item.targets.departments.join(", ") || "All"}
+              </Text>
+              <Text className="text-gray-600 text-xs">
+                Semesters: {item.targets.semesters.join(", ") || "All"}
+              </Text>
+              <Text className="text-gray-500 text-xs mt-2">
+                Uploaded {new Date(item.createdAt).toLocaleDateString()}
+              </Text>
+            </View>
           </TouchableOpacity>
         )}
         ListEmptyComponent={
-          <View className="px-6 py-4">
-            <Text className="text-gray-600 text-center">
-              No documents available
-            </Text>
+          <View className="mt-12">
+            <View className="bg-white rounded-lg border border-gray-200 shadow-sm p-8 mx-6">
+              <View className="items-center">
+                <View className="w-12 h-12 bg-gray-100 rounded-lg items-center justify-center mb-4">
+                  <Text className="text-gray-400 text-xl">📄</Text>
+                </View>
+                <Text className="text-gray-900 font-medium text-base mb-1">
+                  No documents yet
+                </Text>
+                <Text className="text-gray-500 text-sm text-center">
+                  Documents shared by teachers will appear here
+                </Text>
+              </View>
+            </View>
           </View>
         }
       />

@@ -113,22 +113,26 @@ export default function UploadScreen() {
     setLoading(true);
     try {
       const fileAsset = file.assets[0];
-      const fileResponse = await fetch(fileAsset.uri);
-      const blob = await fileResponse.blob();
       const user = await account.get();
       const fileId = ID.unique();
-      // Create a File object from Blob
       const fileName = fileAsset.name || `document_${fileId}`;
+
+      // Convert file URI to File object for React Native
+      const fileResponse = await fetch(fileAsset.uri);
+      const blob = await fileResponse.blob();
+
+      // Create File object from blob
       const fileToUpload = new File([blob], fileName, {
         type: fileAsset.mimeType || "application/octet-stream",
       });
+
       const uploadedFile = await storage.createFile(
         DOCUMENTS_BUCKET_ID,
         fileId,
         fileToUpload,
         ["role:teacher"],
       );
-      const fileUrl = `${process.env.APPWRITE_ENDPOINT}/storage/buckets/${DOCUMENTS_BUCKET_ID}/files/${fileId}/view?project=${process.env.APPWRITE_PROJECT_ID}`;
+      const fileUrl = storage.getFileView(DOCUMENTS_BUCKET_ID, fileId);
 
       await databases.createDocument(
         APPWRITE_DATABASE_ID,
@@ -159,141 +163,166 @@ export default function UploadScreen() {
 
   if (!isTeacher) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
+      <SafeAreaView className="flex-1 bg-gray-50">
         <View className="flex-1 justify-center items-center px-6">
-          <Text className="text-red-600 text-center">{error}</Text>
+          <View className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+            <View className="w-12 h-12 bg-red-100 rounded-lg items-center justify-center mx-auto mb-4">
+              <Text className="text-red-600 text-xl">⚠️</Text>
+            </View>
+            <Text className="text-red-600 text-center font-medium">
+              {error}
+            </Text>
+          </View>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="px-6 pt-4 pb-8">
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <View className="px-6 pt-6 pb-4">
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           className="mb-6 self-start p-2 -ml-2"
           activeOpacity={0.7}
         >
-          <Text className="text-black text-base">← Back</Text>
+          <Text className="text-gray-900 text-sm font-medium">← Back</Text>
         </TouchableOpacity>
-        <Text className="text-3xl font-black text-black mb-2 tracking-tight">
-          Upload Document
-        </Text>
-        <Text className="text-gray-500 text-base leading-6">
-          Share resources with your students
-        </Text>
+        <View className="mb-8">
+          <Text className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">
+            Upload Document
+          </Text>
+          <Text className="text-gray-600 text-sm">
+            Share resources and materials with your students
+          </Text>
+        </View>
       </View>
-      <View className="px-6 space-y-6">
-        <View className="space-y-2">
-          <Text className="text-sm font-medium text-black">Title *</Text>
-          <TextInput
-            className="w-full h-12 px-4 text-base text-black bg-white border border-gray-200 rounded-lg focus:border-black"
-            placeholder="Enter document title"
-            value={title}
-            onChangeText={(text) => {
-              setTitle(text);
-              setError("");
-            }}
-            editable={!loading}
-          />
-        </View>
-        <View className="space-y-2">
-          <Text className="text-sm font-medium text-black">Category *</Text>
-          <View className="border border-gray-200 rounded-lg bg-white">
-            <Picker
-              selectedValue={category}
-              onValueChange={(value: string) => {
-                setCategory(value);
+
+      <View className="px-6">
+        <View className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-6">
+          <View className="space-y-2">
+            <Text className="text-sm font-medium text-gray-900">Title</Text>
+            <TextInput
+              className="w-full h-11 px-3 text-sm text-gray-900 bg-white border border-gray-300 rounded-md focus:border-gray-900"
+              placeholder="Enter document title"
+              value={title}
+              onChangeText={(text) => {
+                setTitle(text);
                 setError("");
               }}
-              style={{ height: 48 }}
-              enabled={!loading}
-            >
-              {categories.map((cat) => (
-                <Picker.Item
-                  key={cat.value}
-                  label={cat.label}
-                  value={cat.value}
-                />
-              ))}
-            </Picker>
+              editable={!loading}
+            />
           </View>
-        </View>
-        <View className="space-y-2">
-          <Text className="text-sm font-medium text-black">Department *</Text>
-          <View className="border border-gray-200 rounded-lg bg-white">
-            <Picker
-              selectedValue={department}
-              onValueChange={(value: string) => {
-                setDepartment(value);
-                setError("");
-              }}
-              style={{ height: 48 }}
-              enabled={!loading}
-            >
-              {departments.map((dept) => (
-                <Picker.Item
-                  key={dept.value}
-                  label={dept.label}
-                  value={dept.value}
-                />
-              ))}
-            </Picker>
+
+          <View className="space-y-2">
+            <Text className="text-sm font-medium text-gray-900">Category</Text>
+            <View className="border border-gray-300 rounded-md bg-white">
+              <Picker
+                selectedValue={category}
+                onValueChange={(value: string) => {
+                  setCategory(value);
+                  setError("");
+                }}
+                style={{ height: 44 }}
+                enabled={!loading}
+              >
+                {categories.map((cat) => (
+                  <Picker.Item
+                    key={cat.value}
+                    label={cat.label}
+                    value={cat.value}
+                  />
+                ))}
+              </Picker>
+            </View>
           </View>
-        </View>
-        <View className="space-y-2">
-          <Text className="text-sm font-medium text-black">Semester *</Text>
-          <View className="border border-gray-200 rounded-lg bg-white">
-            <Picker
-              selectedValue={semester}
-              onValueChange={(value: string) => {
-                setSemester(value);
-                setError("");
-              }}
-              style={{ height: 48 }}
-              enabled={!loading}
-            >
-              {semesters.map((sem) => (
-                <Picker.Item
-                  key={sem.value}
-                  label={sem.label}
-                  value={sem.value}
-                />
-              ))}
-            </Picker>
+
+          <View className="space-y-2">
+            <Text className="text-sm font-medium text-gray-900">
+              Department
+            </Text>
+            <View className="border border-gray-300 rounded-md bg-white">
+              <Picker
+                selectedValue={department}
+                onValueChange={(value: string) => {
+                  setDepartment(value);
+                  setError("");
+                }}
+                style={{ height: 44 }}
+                enabled={!loading}
+              >
+                {departments.map((dept) => (
+                  <Picker.Item
+                    key={dept.value}
+                    label={dept.label}
+                    value={dept.value}
+                  />
+                ))}
+              </Picker>
+            </View>
           </View>
-        </View>
-        <View className="space-y-2">
-          <Text className="text-sm font-medium text-black">File *</Text>
+
+          <View className="space-y-2">
+            <Text className="text-sm font-medium text-gray-900">Semester</Text>
+            <View className="border border-gray-300 rounded-md bg-white">
+              <Picker
+                selectedValue={semester}
+                onValueChange={(value: string) => {
+                  setSemester(value);
+                  setError("");
+                }}
+                style={{ height: 44 }}
+                enabled={!loading}
+              >
+                {semesters.map((sem) => (
+                  <Picker.Item
+                    key={sem.value}
+                    label={sem.label}
+                    value={sem.value}
+                  />
+                ))}
+              </Picker>
+            </View>
+          </View>
+
+          <View className="space-y-2">
+            <Text className="text-sm font-medium text-gray-900">File</Text>
+            <TouchableOpacity
+              className="w-full h-11 bg-white border border-gray-300 rounded-md items-center justify-center active:bg-gray-50"
+              onPress={pickDocument}
+              disabled={loading}
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-center">
+                <View className="w-5 h-5 bg-gray-900 rounded items-center justify-center mr-2">
+                  <Text className="text-white text-xs">📎</Text>
+                </View>
+                <Text className="text-gray-900 font-medium text-sm flex-1 text-center">
+                  {file && !file.canceled && file.assets
+                    ? file.assets[0].name
+                    : "Select File (PDF/Image)"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {error && (
+            <View className="p-3 bg-red-50 border border-red-200 rounded-md">
+              <Text className="text-red-600 text-sm text-center">{error}</Text>
+            </View>
+          )}
+
           <TouchableOpacity
-            className="w-full h-12 bg-white border border-gray-200 rounded-lg items-center justify-center"
-            onPress={pickDocument}
+            className={`w-full h-11 rounded-md items-center justify-center ${loading ? "bg-gray-400" : "bg-gray-900 active:bg-gray-800"}`}
+            onPress={handleSubmit}
             disabled={loading}
-            activeOpacity={0.7}
+            activeOpacity={0.9}
           >
-            <Text className="text-black font-medium">
-              {file && !file.canceled && file.assets
-                ? file.assets[0].name
-                : "Select File (PDF/Image)"}
+            <Text className="text-white font-medium text-sm">
+              {loading ? "Uploading..." : "Upload Document"}
             </Text>
           </TouchableOpacity>
         </View>
-        {error && (
-          <View className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <Text className="text-red-600 text-sm text-center">{error}</Text>
-          </View>
-        )}
-        <TouchableOpacity
-          className={`w-full h-12 rounded-lg items-center justify-center ${loading ? "bg-gray-400" : "bg-black active:bg-gray-800"}`}
-          onPress={handleSubmit}
-          disabled={loading}
-          activeOpacity={0.9}
-        >
-          <Text className="text-white font-semibold text-base">
-            {loading ? "Uploading..." : "Upload Document"}
-          </Text>
-        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
