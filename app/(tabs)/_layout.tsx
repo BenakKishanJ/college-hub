@@ -1,3 +1,4 @@
+// app/(tabs)/_layout.tsx
 import { Tabs } from "expo-router";
 import { Home, BookOpen, Briefcase, Building } from "lucide-react-native";
 import { useAuth } from "../../context/AuthContext";

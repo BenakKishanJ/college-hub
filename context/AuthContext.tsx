@@ -1,5 +1,6 @@
+// context/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { account } from "../lib/appwrite";
+import { account, databases } from "../lib/appwrite";
 import { Models } from "appwrite";
 
 interface User extends Models.Document {
@@ -15,7 +16,7 @@ interface User extends Models.Document {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, role?: string) => Promise<void>;
   register: (
     email: string,
     password: string,
@@ -32,7 +33,9 @@ const AuthContext = createContext<AuthContextType>({
   logout: async () => { },
 });
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
 
 export default function AuthProvider({
   children,
@@ -49,31 +52,48 @@ export default function AuthProvider({
   const checkUser = async () => {
     try {
       const currentUser = await account.get();
-      // For now, we'll set a mock user until we implement database queries
-      setUser({
-        $id: currentUser.$id,
-        $createdAt: currentUser.$createdAt,
-        $updatedAt: currentUser.$updatedAt,
-        displayName: currentUser.name || "Student",
-        department: "Computer Science",
-        semester: "3rd",
-        phoneNumber: "",
-        profileComplete: true,
-        email: currentUser.email,
-        role: "student",
-      } as User);
-      setIsLoading(false);
+
+      try {
+        // Try to get user data from database
+        const userDoc = await databases.getDocument(
+          "college_hub_db",
+          "users",
+          currentUser.$id,
+        );
+
+        setUser(userDoc as unknown as User);
+      } catch (error) {
+        // User doesn't exist in database, create a minimal user object
+        setUser({
+          $id: currentUser.$id,
+          $createdAt: currentUser.$createdAt,
+          $updatedAt: currentUser.$updatedAt,
+          displayName: currentUser.name || "Student",
+          department: "Computer Science",
+          semester: "3rd",
+          phoneNumber: "",
+          profileComplete: false,
+          email: currentUser.email,
+          role: "student",
+        } as User);
+      }
     } catch (error) {
       console.log("No user logged in");
+      // No user is logged in, which is fine
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (
+    email: string,
+    password: string,
+    role: string = "student",
+  ) => {
     try {
-      await account.createSession(email, password);
-      await checkUser();
-    } catch (error) {
+      await account.createEmailPasswordSession(email, password);
+      await checkUser(); // Re-check user after login
+    } catch (error: any) {
       console.error("Login error:", error);
       throw error;
     }
@@ -96,7 +116,24 @@ export default function AuthProvider({
       // Login immediately after registration
       await login(email, password);
 
-      // TODO: Save additional user data to database
+      // Save additional user data to database
+      const currentUser = await account.get();
+      await databases.createDocument(
+        "college_hub_db",
+        "users",
+        currentUser.$id,
+        {
+          displayName: userData.displayName || email.split("@")[0],
+          email: currentUser.email,
+          role: userData.role || "student",
+          profileComplete: false,
+          department: userData.department || "",
+          semester: userData.semester || "",
+          phoneNumber: userData.phoneNumber || "",
+        },
+      );
+
+      await checkUser(); // Refresh user data
     } catch (error) {
       console.error("Registration error:", error);
       throw error;
@@ -113,7 +150,15 @@ export default function AuthProvider({
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        login,
+        register,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
