@@ -8,7 +8,13 @@ module.exports = {
   ],
   presets: [require("nativewind/preset")],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ["SpaceGrotesk-Regular"], // replaces default font-sans
+        grotesk: ["SpaceGrotesk-Regular"], // for regular
+        groteskBold: ["SpaceGrotesk-Bold"], // for bold
+      },
+    },
   },
   plugins: [],
 };

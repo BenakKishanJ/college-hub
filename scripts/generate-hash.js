@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 
 const saltRounds = 10;
-const secretCode = "your_teacher_secret_code_here";
+const secretCode = "IamDraitian";
 
 bcrypt.hash(secretCode, saltRounds, function(err, hash) {
   if (err) {
