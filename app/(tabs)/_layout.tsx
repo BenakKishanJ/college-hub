@@ -4,10 +4,7 @@ import {
   Home,
   BookA,
   BriefcaseBusiness,
-  User,
-  Plus,
   GraduationCap,
-  School,
 } from "lucide-react-native";
 import { useAuth } from "../../context/AuthContext";
 import { View } from "react-native";
