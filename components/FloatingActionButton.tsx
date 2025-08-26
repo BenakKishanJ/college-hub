@@ -25,7 +25,7 @@ export default function FloatingActionButton({
     <View className={`absolute ${positionStyles[position]}`}>
       <TouchableOpacity
         onPress={onPress}
-        className="bg-blue-500 w-16 h-16 rounded-full items-center justify-center shadow-lg shadow-black/30"
+        className="bg-black w-16 h-16 rounded-full items-center justify-center shadow-lg shadow-black/30"
       >
         <Plus size={24} color="white" />
       </TouchableOpacity>

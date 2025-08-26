@@ -11,7 +11,8 @@
     "init-config": "npx tsx scripts/init-app-config.ts"
   },
   "dependencies": {
-   "@expo-google-fonts/inter": "^0.4.1",
+    "@expo-google-fonts/inter": "^0.4.1",
+    "@expo-google-fonts/space-grotesk": "^0.4.0",
     "@react-native-picker/picker": "^2.11.1",
     "@react-navigation/bottom-tabs": "^7.4.6",
     "@react-navigation/native": "^7.1.17",
@@ -34,7 +35,7 @@
     "react": "19.0.0",
     "react-native": "0.79.5",
     "react-native-appwrite": "^0.11.0",
-   "react-native-gesture-handler": "^2.28.0",
+    "react-native-gesture-handler": "^2.28.0",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",

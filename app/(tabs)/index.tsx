@@ -18,6 +18,9 @@ import {
   FileText,
   Calendar,
   Megaphone,
+  BookOpen,
+  Laptop,
+  Briefcase,
 } from "lucide-react-native";
 import { databases, APPWRITE_CONFIG } from "../../lib/appwrite";
 import { Query } from "appwrite";
@@ -107,8 +110,8 @@ export default function HomeScreen() {
   const getUserAvatar = () => {
     // You can replace this with actual user avatar logic
     return (
-      <View className="w-10 h-10 bg-gray-700 rounded-full items-center justify-center">
-        <Text className="text-white font-semibold text-lg">
+      <View className="w-12 h-12 bg-neutral-950 rounded-full items-center justify-center">
+        <Text className="font-groteskBold text-white text-3xl">
           {user?.displayName?.charAt(0)?.toUpperCase() || "U"}
         </Text>
       </View>
@@ -127,9 +130,9 @@ export default function HomeScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-black">
+    <SafeAreaView className="flex-1 bg-neutral-200">
       {/* Header */}
-      <View className="px-6 py-4 border-b border-gray-800">
+      <View className="px-6 py-4 border-black">
         <View className="flex-row items-center justify-between">
           {/* User Avatar */}
           <TouchableOpacity
@@ -142,36 +145,94 @@ export default function HomeScreen() {
           {/* Notifications Bell */}
           <TouchableOpacity
             onPress={() => router.push("/notifications")}
-            className="p-2"
+            className="p-2 bg-neutral-950 rounded-full"
           >
-            <Bell size={24} color="white" />
+            <Bell size={28} color="white" />
           </TouchableOpacity>
         </View>
       </View>
-
       <ScrollView className="flex-1">
         {/* Welcome Section */}
         <View className="px-6 py-8">
-          <Text className="text-2xl font-light text-white mb-1">
-            Welcome back,
+          <Text className="font-groteskBold text-4xl text-neutral-500">
+            Hi{" "}
+            <Text className="text-black font-groteskBold">
+              {user?.displayName?.toString().toUpperCase() || "Student"}
+            </Text>
+            ! Let's get started with your college updates.
           </Text>
-          <Text className="text-3xl font-bold text-white">
-            {user?.displayName || "Student"}!
-          </Text>
-          <Text className="text-gray-400 mt-2">
+          {/* Text features line */}
+          <View className="flex-wrap flex-row mt-10">
+            {/* Normal text */}
+            <Text className="text-neutral-500 font-groteskBold text-4xl">
+              Explore{" "}
+            </Text>
+
+            {/* Academics */}
+            <View className="flex-row items-center mr-2">
+              <View className="p-2 bg-black rounded-full mr-1">
+                <BookOpen size={20} color="white" />
+              </View>
+              <Text className="text-black font-groteskBold text-4xl">
+                Academics
+              </Text>
+            </View>
+            <Text className="text-neutral-500 font-groteskBold text-4xl">
+              ,
+            </Text>
+            <Text className="text-neutral-500 font-groteskBold text-4xl">
+              dive into{" "}
+            </Text>
+
+            {/* Computer Science */}
+            <View className="flex-row items-center mr-2">
+              <View className="p-2 bg-black rounded-full mr-1">
+                <Laptop size={20} color="white" />
+              </View>
+              <Text className="text-black font-groteskBold text-4xl">
+                Department
+              </Text>
+            </View>
+
+            <Text className="text-neutral-500 font-groteskBold text-4xl">
+              ,
+            </Text>
+            <Text className="text-neutral-500 font-groteskBold text-4xl">
+              or you can discover new{" "}
+            </Text>
+
+            {/* Opportunities */}
+            <View className="flex-row items-center mr-2">
+              <View className="p-2 bg-black rounded-full mr-1">
+                <Briefcase size={20} color="white" />
+              </View>
+              <Text className="text-black font-groteskBold text-4xl">
+                Opportunities
+              </Text>
+            </View>
+
+            <Text className="text-neutral-500 font-groteskBold text-4xl">
+              waiting
+            </Text>
+            <Text className="text-neutral-500 font-groteskBold text-4xl">
+              for you.
+            </Text>
+          </View>
+          <Text className="font-groteskBold text-neutral-500 mt-10 text-4xl">
             Here are the latest general circulars for you.
           </Text>
         </View>
-
         {/* General Circulars Section */}
         <View className="px-6 pb-8">
           <View className="flex-row items-center justify-between mb-6">
-            <Text className="text-2xl font-bold text-white">
+            <Text className="font-groteskBold text-2xl text-black">
               General Circulars
             </Text>
             <View className="flex-row items-center">
-              <Megaphone size={20} color="#6B7280" className="mr-2" />
-              <Text className="text-gray-400">
+              <View className="p-2 bg-neutral-950 rounded-full">
+                <Megaphone size={20} color="white" className="mr-2" />
+              </View>
+              <Text className="font-groteskBold text-neutral-500 ml-2 text-2xl">
                 {documents.length} circular{documents.length !== 1 ? "s" : ""}
               </Text>
             </View>
@@ -179,8 +240,8 @@ export default function HomeScreen() {
 
           {documents.length === 0 ? (
             <View className="flex-1 justify-center items-center py-12">
-              <FileText size={48} color="#6B7280" />
-              <Text className="text-gray-400 text-center mt-4">
+              <FileText size={48} color="#737373" />
+              <Text className="font-grotesk text-neutral-500 text-center mt-4 text-xl">
                 No general circulars available yet
               </Text>
             </View>
@@ -234,50 +295,6 @@ export default function HomeScreen() {
               ))}
             </View>
           )}
-        </View>
-
-        {/* Quick Actions Section */}
-        <View className="px-6 pb-8">
-          <Text className="text-2xl font-bold text-white mb-6">
-            Quick Access
-          </Text>
-          <View className="flex-row flex-wrap gap-4">
-            <TouchableOpacity
-              onPress={() => router.push("/academics")}
-              className="bg-gray-900 px-6 py-4 rounded-lg border border-gray-800 flex-1 min-w-[150px]"
-            >
-              <Text className="text-white font-semibold text-center mb-2">
-                📚 Academics
-              </Text>
-              <Text className="text-gray-400 text-xs text-center">
-                Study materials & exams
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => router.push("/department")}
-              className="bg-gray-900 px-6 py-4 rounded-lg border border-gray-800 flex-1 min-w-[150px]"
-            >
-              <Text className="text-white font-semibold text-center mb-2">
-                🏛️ Department
-              </Text>
-              <Text className="text-gray-400 text-xs text-center">
-                Circulars & subjects
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => router.push("/opportunities")}
-              className="bg-gray-900 px-6 py-4 rounded-lg border border-gray-800 flex-1 min-w-[150px]"
-            >
-              <Text className="text-white font-semibold text-center mb-2">
-                💼 Opportunities
-              </Text>
-              <Text className="text-gray-400 text-xs text-center">
-                Internships & jobs
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </ScrollView>
       <TeacherFAB />
