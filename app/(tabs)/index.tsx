@@ -1,4 +1,4 @@
-// app/(tabs)/index.tsx (updated General Circulars section only)
+// app/(tabs)/index.tsx (fixed Text component issues)
 import { useState, useEffect } from "react";
 import {
   View,
@@ -204,12 +204,13 @@ export default function HomeScreen() {
             >
               {user?.displayName?.toString().toUpperCase() || "Student"}
             </Text>
-            ! Don’t miss out on the latest campus happenings.
-          </Text>{" "}
+            ! Don't miss out on the latest campus happenings.
+          </Text>
           <Text className="font-groteskBold text-black mt-10 text-2xl">
             Here are the latest general circulars for you.
           </Text>
         </View>
+
         {/* Search Bar */}
         <View className="px-6 mb-4">
           <View className="flex-row items-center bg-white rounded-2xl px-4 py-4 shadow-sm border border-neutral-300">
@@ -223,6 +224,7 @@ export default function HomeScreen() {
             />
           </View>
         </View>
+
         {/* Sort Row */}
         <View className="px-6 mb-6">
           <TouchableOpacity
@@ -239,6 +241,7 @@ export default function HomeScreen() {
             )}
           </TouchableOpacity>
         </View>
+
         {/* Results Count */}
         <View className="px-6 mb-4">
           <Text className="text-neutral-400 font-grotesk">
@@ -247,6 +250,7 @@ export default function HomeScreen() {
             {searchQuery && ` for "${searchQuery}"`}
           </Text>
         </View>
+
         {/* General Circulars Section */}
         <View className="px-6 pb-8">
           {filteredDocuments.length === 0 ? (
@@ -325,6 +329,7 @@ export default function HomeScreen() {
             </View>
           )}
         </View>
+
         {/* Text features line */}
         <View className="px-6 py-8">
           <View className="flex-wrap flex-row items-center">
@@ -344,6 +349,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <Text className="text-neutral-500 font-groteskBold text-2xl">
+              {" "}
               rules and notices to updates across your{" "}
             </Text>
 
@@ -356,15 +362,17 @@ export default function HomeScreen() {
                 <Laptop size={20} color="white" />
               </View>
               <Text className="text-black font-groteskBold text-2xl">
-                {user?.department.toString().toLowerCase() || "branch"}
+                {user?.department?.toString().toLowerCase() || "branch"}
               </Text>
             </TouchableOpacity>
 
             <Text className="text-neutral-500 font-groteskBold text-2xl">
-              department and from {""}
+              {" "}
+              department and from{" "}
             </Text>
             <Text className="text-neutral-500 font-groteskBold text-2xl">
-              exciting {""}
+              {" "}
+              exciting{" "}
             </Text>
 
             {/* Opportunities */}
@@ -383,11 +391,12 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <Text className="text-neutral-500 font-groteskBold text-2xl">
+              {" "}
               to career-shaping experiences, this app keeps you informed,
               connected, and ahead.
             </Text>
           </View>
-        </View>{" "}
+        </View>
       </ScrollView>
       <TeacherFAB />
     </SafeAreaView>

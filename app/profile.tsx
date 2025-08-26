@@ -26,7 +26,7 @@ import {
   Calendar,
   Key,
   ArrowLeft,
-  LogOut, // Added LogOut icon
+  LogOut,
 } from "lucide-react-native";
 import { Picker } from "@react-native-picker/picker";
 import { router } from "expo-router";
@@ -61,7 +61,7 @@ const SEMESTER_OPTIONS = [
 ];
 
 export default function ProfileScreen() {
-  const { user, isLoading: authLoading, logout } = useAuth(); // Added logout from useAuth
+  const { user, isLoading: authLoading, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -221,7 +221,7 @@ export default function ProfileScreen() {
               <Text className="text-2xl font-groteskBold text-black">
                 Profile
               </Text>
-              <View className="w-10" /> {/* Spacer for balance */}
+              <View className="w-10" />
             </View>
           </View>
 
@@ -246,7 +246,7 @@ export default function ProfileScreen() {
                   }`}
               >
                 <Text className="text-black font-groteskBold text-sm">
-                  {user.role?.toUpperCase()}
+                  {user.role?.toUpperCase() || "USER"}
                 </Text>
               </View>
             </View>
