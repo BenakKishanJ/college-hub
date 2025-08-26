@@ -196,88 +196,17 @@ export default function HomeScreen() {
       >
         {/* Welcome Section */}
         <View className="px-6 py-8">
-          <Text className="font-groteskBold text-4xl text-neutral-500">
+          <Text className="font-groteskBold text-2xl text-neutral-500">
             Hi{" "}
             <Text
               onPress={() => router.push("/profile")}
-              className="text-black font-groteskBold text-4xl"
+              className="text-black font-groteskBold text-2xl"
             >
               {user?.displayName?.toString().toUpperCase() || "Student"}
             </Text>
-            ! Let's get started with your college updates.
+            ! Don’t miss out on the latest campus happenings.
           </Text>{" "}
-          {/* Text features line */}
-          <View className="flex-wrap flex-row mt-10">
-            {/* Normal text */}
-            <Text className="text-neutral-500 font-groteskBold text-4xl">
-              Explore{" "}
-            </Text>
-
-            {/* Academics */}
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/academics")}
-              className="flex-row items-center mr-2"
-            >
-              <View className="flex-row items-center mr-2">
-                <View className="p-2 bg-black rounded-full mr-1">
-                  <BookOpen size={20} color="white" />
-                </View>
-                <Text className="text-black font-groteskBold text-4xl">
-                  Academics
-                </Text>
-              </View>
-            </TouchableOpacity>
-            <Text className="text-neutral-500 font-groteskBold text-4xl">
-              ,
-            </Text>
-            <Text className="text-neutral-500 font-groteskBold text-4xl">
-              dive into{" "}
-            </Text>
-
-            {/* Computer Science */}
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/department")}
-              className="flex-row items-center mr-2"
-            >
-              <View className="flex-row items-center mr-2">
-                <View className="p-2 bg-black rounded-full mr-1">
-                  <Laptop size={20} color="white" />
-                </View>
-                <Text className="text-black font-groteskBold text-4xl">
-                  Department
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <Text className="text-neutral-500 font-groteskBold text-4xl">
-              ,
-            </Text>
-            <Text className="text-neutral-500 font-groteskBold text-4xl">
-              or you can discover new{" "}
-            </Text>
-
-            {/* Opportunities */}
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/opportunities")}
-            >
-              <View className="flex-row items-center mr-2">
-                <View className="p-2 bg-black rounded-full mr-1">
-                  <Briefcase size={20} color="white" />
-                </View>
-                <Text className="text-black font-groteskBold text-4xl">
-                  Opportunities
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <Text className="text-neutral-500 font-groteskBold text-4xl">
-              waiting
-            </Text>
-            <Text className="text-neutral-500 font-groteskBold text-4xl">
-              for you.
-            </Text>
-          </View>
-          <Text className="font-groteskBold text-neutral-500 mt-10 text-4xl">
+          <Text className="font-groteskBold text-black mt-10 text-2xl">
             Here are the latest general circulars for you.
           </Text>
         </View>
@@ -294,7 +223,6 @@ export default function HomeScreen() {
             />
           </View>
         </View>
-
         {/* Sort Row */}
         <View className="px-6 mb-6">
           <TouchableOpacity
@@ -311,7 +239,6 @@ export default function HomeScreen() {
             )}
           </TouchableOpacity>
         </View>
-
         {/* Results Count */}
         <View className="px-6 mb-4">
           <Text className="text-neutral-400 font-grotesk">
@@ -320,7 +247,6 @@ export default function HomeScreen() {
             {searchQuery && ` for "${searchQuery}"`}
           </Text>
         </View>
-
         {/* General Circulars Section */}
         <View className="px-6 pb-8">
           {filteredDocuments.length === 0 ? (
@@ -399,6 +325,69 @@ export default function HomeScreen() {
             </View>
           )}
         </View>
+        {/* Text features line */}
+        <View className="px-6 py-8">
+          <View className="flex-wrap flex-row items-center">
+            <Text className="text-neutral-500 font-groteskBold text-2xl">
+              From essential{" "}
+            </Text>
+
+            {/* Exam rules and notices */}
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/academics")}
+              className="flex-row items-center mr-1"
+            >
+              <View className="p-2 bg-black rounded-full mr-1">
+                <BookOpen size={20} color="white" />
+              </View>
+              <Text className="text-black font-groteskBold text-2xl">exam</Text>
+            </TouchableOpacity>
+
+            <Text className="text-neutral-500 font-groteskBold text-2xl">
+              rules and notices to updates across your{" "}
+            </Text>
+
+            {/* Branch */}
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/department")}
+              className="flex-row items-center mr-1"
+            >
+              <View className="p-2 bg-black rounded-full mr-1">
+                <Laptop size={20} color="white" />
+              </View>
+              <Text className="text-black font-groteskBold text-2xl">
+                {user?.department.toString().toLowerCase() || "branch"}
+              </Text>
+            </TouchableOpacity>
+
+            <Text className="text-neutral-500 font-groteskBold text-2xl">
+              department and from {""}
+            </Text>
+            <Text className="text-neutral-500 font-groteskBold text-2xl">
+              exciting {""}
+            </Text>
+
+            {/* Opportunities */}
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/opportunities")}
+              className="mr-1"
+            >
+              <View className="flex-row items-center">
+                <View className="p-2 bg-black rounded-full mr-1">
+                  <Briefcase size={20} color="white" />
+                </View>
+                <Text className="text-black font-groteskBold text-2xl">
+                  activities
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <Text className="text-neutral-500 font-groteskBold text-2xl">
+              to career-shaping experiences, this app keeps you informed,
+              connected, and ahead.
+            </Text>
+          </View>
+        </View>{" "}
       </ScrollView>
       <TeacherFAB />
     </SafeAreaView>
