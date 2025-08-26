@@ -289,19 +289,26 @@ export default function UploadScreen() {
 
       const fileUrl = `${APPWRITE_CONFIG.endpoint}/storage/buckets/${APPWRITE_CONFIG.bucketId}/files/${storageResponse.$id}/view?project=${APPWRITE_CONFIG.projectId}`;
 
-      // Create document record with subjectName if applicable
+      // Create document record with ALL required attributes
       const documentData = {
         title: formData.title.trim(),
         fileUrl,
         category: formData.category,
-        subjectName:
-          formData.category === "Subject-Specific"
-            ? formData.subjectName.trim()
-            : undefined,
         targetDepartments: formData.targetDepartments,
         targetSemesters: formData.targetSemesters,
         uploadedBy: user.$id,
         createdAt: new Date().toISOString(),
+        // Include subjectName (can be null/undefined for non-subject-specific)
+        subjectName:
+          formData.category === "Subject-Specific"
+            ? formData.subjectName.trim()
+            : formData.subjectName.trim() || undefined,
+        // Include description (can be null/undefined)
+        description: formData.description.trim() || undefined,
+        // Include fileName - use the original file name
+        fileName: selectedFile.name,
+        // Include fileSize - convert to number (double)
+        fileSize: selectedFile.size || 0,
       };
 
       await databases.createDocument(
@@ -369,7 +376,7 @@ export default function UploadScreen() {
       if (response.status === 200) {
         Alert.alert(
           "Connection Test",
-          "✓ Successfully connected with authentication!",
+          "Successfully connected with authentication!",
         );
       } else {
         Alert.alert(
@@ -562,24 +569,22 @@ export default function UploadScreen() {
               </View>
             </View>
 
-            {/* Subject Name Field (only for Subject-Specific) */}
-            {isSubjectSpecific && (
-              <View className="mb-6">
-                <Text className="text-black font-grotesk mb-2">
-                  Subject Name *
-                </Text>
-                <TextInput
-                  className="border border-neutral-300 rounded-2xl p-4 font-grotesk text-black"
-                  placeholder="Enter subject name"
-                  placeholderTextColor="#a3a3a3"
-                  value={formData.subjectName}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, subjectName: text })
-                  }
-                  editable={!isUploading}
-                />
-              </View>
-            )}
+            {/* Subject Name Field (always shown, required only for Subject-Specific) */}
+            <View className="mb-6">
+              <Text className="text-black font-grotesk mb-2">
+                Subject Name {isSubjectSpecific ? "*" : ""}
+              </Text>
+              <TextInput
+                className="border border-neutral-300 rounded-2xl p-4 font-grotesk text-black"
+                placeholder="Enter subject name"
+                placeholderTextColor="#a3a3a3"
+                value={formData.subjectName}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, subjectName: text })
+                }
+                editable={!isUploading}
+              />
+            </View>
 
             <View className="mb-6">
               <Text className="text-black font-grotesk mb-2">Description</Text>
