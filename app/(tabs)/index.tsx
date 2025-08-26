@@ -1,4 +1,4 @@
-// app/(tabs)/index.tsx
+// app/(tabs)/index.tsx (updated General Circulars section only)
 import { useState, useEffect } from "react";
 import {
   View,
@@ -7,13 +7,11 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Link, router } from "expo-router";
+import { router } from "expo-router";
 import {
   Bell,
-  User,
   Download,
   FileText,
   Calendar,
@@ -21,11 +19,16 @@ import {
   BookOpen,
   Laptop,
   Briefcase,
+  Search,
+  SortAsc,
+  SortDesc,
 } from "lucide-react-native";
 import { databases, APPWRITE_CONFIG } from "../../lib/appwrite";
 import { Query } from "appwrite";
 import { useAuth } from "../../context/AuthContext";
 import TeacherFAB from "../../components/TeacherFAB";
+import { Card } from "@/components/ui/card";
+import { TextInput } from "../../components/TextInput";
 
 interface Document {
   $id: string;
@@ -42,11 +45,18 @@ interface Document {
 export default function HomeScreen() {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
 
   useEffect(() => {
     loadDocuments();
   }, []);
+
+  useEffect(() => {
+    filterAndSortDocuments();
+  }, [documents, searchQuery, sortBy]);
 
   const loadDocuments = async () => {
     try {
@@ -57,7 +67,7 @@ export default function HomeScreen() {
         [
           Query.equal("category", "General Circulars"),
           Query.orderDesc("createdAt"),
-          Query.limit(10), // Show latest 10 circulars
+          Query.limit(20),
         ],
       );
 
@@ -69,6 +79,34 @@ export default function HomeScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterAndSortDocuments = () => {
+    let filtered = [...documents];
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (doc) =>
+          doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          doc.description?.toLowerCase().includes(searchQuery.toLowerCase()),
+      );
+    }
+
+    // Sort documents
+    filtered = filtered.sort((a, b) => {
+      if (sortBy === "newest") {
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      } else {
+        return (
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      }
+    });
+
+    setFilteredDocuments(filtered);
   };
 
   const handleDownload = async (document: Document) => {
@@ -108,7 +146,6 @@ export default function HomeScreen() {
   };
 
   const getUserAvatar = () => {
-    // You can replace this with actual user avatar logic
     return (
       <View className="w-12 h-12 bg-neutral-950 rounded-full items-center justify-center">
         <Text className="font-groteskBold text-white text-3xl">
@@ -151,16 +188,24 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       </View>
-      <ScrollView className="flex-1">
+
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
         {/* Welcome Section */}
         <View className="px-6 py-8">
           <Text className="font-groteskBold text-4xl text-neutral-500">
             Hi{" "}
-            <Text className="text-black font-groteskBold">
+            <Text
+              onPress={() => router.push("/profile")}
+              className="text-black font-groteskBold text-4xl"
+            >
               {user?.displayName?.toString().toUpperCase() || "Student"}
             </Text>
             ! Let's get started with your college updates.
-          </Text>
+          </Text>{" "}
           {/* Text features line */}
           <View className="flex-wrap flex-row mt-10">
             {/* Normal text */}
@@ -169,14 +214,19 @@ export default function HomeScreen() {
             </Text>
 
             {/* Academics */}
-            <View className="flex-row items-center mr-2">
-              <View className="p-2 bg-black rounded-full mr-1">
-                <BookOpen size={20} color="white" />
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/academics")}
+              className="flex-row items-center mr-2"
+            >
+              <View className="flex-row items-center mr-2">
+                <View className="p-2 bg-black rounded-full mr-1">
+                  <BookOpen size={20} color="white" />
+                </View>
+                <Text className="text-black font-groteskBold text-4xl">
+                  Academics
+                </Text>
               </View>
-              <Text className="text-black font-groteskBold text-4xl">
-                Academics
-              </Text>
-            </View>
+            </TouchableOpacity>
             <Text className="text-neutral-500 font-groteskBold text-4xl">
               ,
             </Text>
@@ -185,14 +235,19 @@ export default function HomeScreen() {
             </Text>
 
             {/* Computer Science */}
-            <View className="flex-row items-center mr-2">
-              <View className="p-2 bg-black rounded-full mr-1">
-                <Laptop size={20} color="white" />
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/department")}
+              className="flex-row items-center mr-2"
+            >
+              <View className="flex-row items-center mr-2">
+                <View className="p-2 bg-black rounded-full mr-1">
+                  <Laptop size={20} color="white" />
+                </View>
+                <Text className="text-black font-groteskBold text-4xl">
+                  Department
+                </Text>
               </View>
-              <Text className="text-black font-groteskBold text-4xl">
-                Department
-              </Text>
-            </View>
+            </TouchableOpacity>
 
             <Text className="text-neutral-500 font-groteskBold text-4xl">
               ,
@@ -202,14 +257,18 @@ export default function HomeScreen() {
             </Text>
 
             {/* Opportunities */}
-            <View className="flex-row items-center mr-2">
-              <View className="p-2 bg-black rounded-full mr-1">
-                <Briefcase size={20} color="white" />
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/opportunities")}
+            >
+              <View className="flex-row items-center mr-2">
+                <View className="p-2 bg-black rounded-full mr-1">
+                  <Briefcase size={20} color="white" />
+                </View>
+                <Text className="text-black font-groteskBold text-4xl">
+                  Opportunities
+                </Text>
               </View>
-              <Text className="text-black font-groteskBold text-4xl">
-                Opportunities
-              </Text>
-            </View>
+            </TouchableOpacity>
 
             <Text className="text-neutral-500 font-groteskBold text-4xl">
               waiting
@@ -222,76 +281,120 @@ export default function HomeScreen() {
             Here are the latest general circulars for you.
           </Text>
         </View>
+        {/* Search Bar */}
+        <View className="px-6 mb-4">
+          <View className="flex-row items-center bg-white rounded-2xl px-4 py-4 shadow-sm border border-neutral-300">
+            <Search size={20} color="#a3a3a3" />
+            <TextInput
+              className="flex-1 ml-3 text-black font-grotesk text-base"
+              placeholder="Search circulars, announcements..."
+              placeholderTextColor="#a3a3a3"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+        </View>
+
+        {/* Sort Row */}
+        <View className="px-6 mb-6">
+          <TouchableOpacity
+            className="bg-white border border-neutral-300 px-4 py-3 rounded-2xl flex-row items-center justify-between w-40"
+            onPress={() => setSortBy(sortBy === "newest" ? "oldest" : "newest")}
+          >
+            <Text className="text-black font-grotesk">
+              {sortBy === "newest" ? "Newest" : "Oldest"}
+            </Text>
+            {sortBy === "newest" ? (
+              <SortDesc size={16} color="#000" />
+            ) : (
+              <SortAsc size={16} color="#000" />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Results Count */}
+        <View className="px-6 mb-4">
+          <Text className="text-neutral-400 font-grotesk">
+            {filteredDocuments.length} circular
+            {filteredDocuments.length !== 1 ? "s" : ""} found
+            {searchQuery && ` for "${searchQuery}"`}
+          </Text>
+        </View>
+
         {/* General Circulars Section */}
         <View className="px-6 pb-8">
-          <View className="flex-row items-center justify-between mb-6">
-            <Text className="font-groteskBold text-2xl text-black">
-              General Circulars
-            </Text>
-            <View className="flex-row items-center">
-              <View className="p-2 bg-neutral-950 rounded-full">
-                <Megaphone size={20} color="white" className="mr-2" />
-              </View>
-              <Text className="font-groteskBold text-neutral-500 ml-2 text-2xl">
-                {documents.length} circular{documents.length !== 1 ? "s" : ""}
-              </Text>
-            </View>
-          </View>
-
-          {documents.length === 0 ? (
-            <View className="flex-1 justify-center items-center py-12">
-              <FileText size={48} color="#737373" />
-              <Text className="font-grotesk text-neutral-500 text-center mt-4 text-xl">
-                No general circulars available yet
+          {filteredDocuments.length === 0 ? (
+            <View className="flex-1 justify-center items-center py-16 bg-white rounded-2xl border border-neutral-300">
+              <Megaphone size={48} color="#a3a3a3" />
+              <Text className="text-neutral-400 text-center mt-4 font-grotesk text-base px-8">
+                {searchQuery
+                  ? "No circulars match your search criteria"
+                  : "No circulars available yet"}
               </Text>
             </View>
           ) : (
             <View className="space-y-4">
-              {documents.map((document) => (
-                <View
+              {filteredDocuments.map((document) => (
+                <Card
                   key={document.$id}
-                  className="bg-gray-900 rounded-lg p-6 border border-gray-800"
+                  className="bg-white rounded-2xl p-6 border border-neutral-300 shadow-sm"
                 >
                   <View className="flex-row justify-between items-start mb-4">
-                    <View className="flex-1">
-                      <Text className="text-white font-semibold text-lg mb-1">
+                    <View className="flex-1 pr-4">
+                      {/* Category Badge */}
+                      <View className="flex-row items-center mb-3">
+                        <View className="flex-row items-center bg-neutral-200 px-3 py-1 rounded-full">
+                          <Megaphone size={16} color="#a3a3a3" />
+                          <Text className="text-neutral-400 text-sm ml-2 font-grotesk">
+                            General Circular
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Title */}
+                      <Text className="text-black font-groteskBold text-lg mb-2 leading-6">
                         {document.title}
                       </Text>
+
+                      {/* Description */}
                       {document.description && (
-                        <Text className="text-gray-400 text-sm mb-2">
+                        <Text className="text-neutral-400 text-sm mb-3 font-grotesk leading-5">
                           {document.description}
                         </Text>
                       )}
                     </View>
+
+                    {/* Download Button */}
                     <TouchableOpacity
                       onPress={() => handleDownload(document)}
-                      className="bg-white p-2 rounded-lg"
+                      className="bg-lime-400 p-3 rounded-full"
                     >
                       <Download size={20} color="black" />
                     </TouchableOpacity>
                   </View>
 
-                  <View className="flex-row justify-between items-center">
+                  {/* File Info and Date */}
+                  <View className="flex-row justify-between items-center pt-4 border-t border-neutral-200">
                     <View className="flex-row items-center space-x-4">
                       <View className="flex-row items-center">
-                        <FileText size={14} color="#6B7280" />
-                        <Text className="text-gray-400 text-sm ml-1">
+                        <FileText size={14} color="#a3a3a3" />
+                        <Text className="text-neutral-400 text-sm ml-1 font-grotesk">
                           {document.fileName}
                         </Text>
                       </View>
-                      <Text className="text-gray-400 text-sm">
+                      <Text className="text-neutral-400 text-sm font-grotesk">
                         {formatFileSize(document.fileSize)}
                       </Text>
                     </View>
 
                     <View className="flex-row items-center">
-                      <Calendar size={14} color="#6B7280" />
-                      <Text className="text-gray-400 text-sm ml-1">
+                      <Calendar size={14} color="#a3a3a3" />
+                      <Text className="text-neutral-400 text-sm ml-1 font-grotesk">
                         {formatDate(document.createdAt)}
                       </Text>
                     </View>
                   </View>
-                </View>
+                </Card>
               ))}
             </View>
           )}

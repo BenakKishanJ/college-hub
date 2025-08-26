@@ -15,10 +15,15 @@ import {
   FileText,
   Calendar,
   Building2,
+  BookOpen,
+  Filter,
+  SortAsc,
 } from "lucide-react-native";
 import { databases, APPWRITE_CONFIG } from "../../lib/appwrite";
 import { Query } from "appwrite";
 import { TextInput } from "../../components/TextInput";
+import { Card } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
 import { useAuth } from "../../context/AuthContext";
 
 interface Document {
@@ -41,15 +46,17 @@ interface SubjectGroup {
   data: Document[];
 }
 
+type SortOption = "newest" | "oldest" | "title" | "size";
+
 export default function DepartmentScreen() {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [departmentCirculars, setDepartmentCirculars] = useState<Document[]>(
-    [],
-  );
+  const [departmentCirculars, setDepartmentCirculars] = useState<Document[]>([]);
   const [subjectGroups, setSubjectGroups] = useState<SubjectGroup[]>([]);
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     loadDocuments();
@@ -57,7 +64,7 @@ export default function DepartmentScreen() {
 
   useEffect(() => {
     filterAndGroupDocuments();
-  }, [documents, searchQuery, user]);
+  }, [documents, searchQuery, user, sortBy]);
 
   const loadDocuments = async () => {
     try {
@@ -84,6 +91,23 @@ export default function DepartmentScreen() {
     }
   };
 
+  const sortDocuments = (docs: Document[]): Document[] => {
+    return [...docs].sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "oldest":
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "title":
+          return a.title.localeCompare(b.title);
+        case "size":
+          return b.fileSize - a.fileSize;
+        default:
+          return 0;
+      }
+    });
+  };
+
   const filterAndGroupDocuments = () => {
     let filtered = [...documents];
 
@@ -97,9 +121,9 @@ export default function DepartmentScreen() {
       );
     }
 
-    // Separate department circulars
-    const circulars = filtered.filter(
-      (doc) => doc.category === "Department Circulars",
+    // Separate department circulars and sort them
+    const circulars = sortDocuments(
+      filtered.filter((doc) => doc.category === "Department Circulars")
     );
     setDepartmentCirculars(circulars);
 
@@ -122,7 +146,10 @@ export default function DepartmentScreen() {
     });
 
     const groups: SubjectGroup[] = Array.from(subjectGroupsMap.entries())
-      .map(([subjectName, data]) => ({ subjectName, data }))
+      .map(([subjectName, data]) => ({
+        subjectName,
+        data: sortDocuments(data)
+      }))
       .sort((a, b) => a.subjectName.localeCompare(b.subjectName));
 
     setSubjectGroups(groups);
@@ -185,112 +212,105 @@ export default function DepartmentScreen() {
     });
   };
 
-  const renderDepartmentCircular = (item: Document) => (
-    <View
-      key={item.$id}
-      className="bg-gray-900 rounded-lg p-6 border border-gray-800 mb-4"
-    >
-      <View className="flex-row justify-between items-start mb-4">
-        <View className="flex-1">
-          <Text className="text-white font-semibold text-lg mb-1">
+  const renderDocumentCard = (item: Document, isCompact: boolean = false) => (
+    <Card key={item.$id} className="bg-white border border-neutral-200 mb-3 p-4">
+      <View className="flex-row justify-between items-start mb-3">
+        <View className="flex-1 mr-3">
+          <Text className={`text-black ${isCompact ? 'text-base font-grotesk' : 'text-lg font-groteskBold'} mb-1`}>
             {item.title}
           </Text>
           {item.description && (
-            <Text className="text-gray-400 text-sm mb-2">
+            <Text className="text-neutral-400 text-sm font-grotesk mb-2">
               {item.description}
             </Text>
           )}
         </View>
-        <TouchableOpacity
+        <Button
           onPress={() => handleDownload(item)}
-          className="bg-white p-2 rounded-lg"
+          className="bg-lime-400 p-3 rounded-lg min-w-0"
         >
-          <Download size={20} color="black" />
-        </TouchableOpacity>
+          <Download size={18} color="black" />
+        </Button>
       </View>
 
       <View className="flex-row justify-between items-center">
-        <View className="flex-row items-center space-x-4">
-          <View className="flex-row items-center">
-            <FileText size={14} color="#6B7280" />
-            <Text className="text-gray-400 text-sm ml-1">{item.fileName}</Text>
+        <View className="flex-1">
+          <View className="flex-row items-center mb-1">
+            <FileText size={12} color="#a3a3a3" />
+            <Text className="text-neutral-400 text-xs font-grotesk ml-1 flex-1" numberOfLines={1}>
+              {item.fileName}
+            </Text>
           </View>
-          <Text className="text-gray-400 text-sm">
+          <Text className="text-neutral-400 text-xs font-grotesk">
             {formatFileSize(item.fileSize)}
           </Text>
         </View>
 
-        <View className="flex-row items-center">
-          <Calendar size={14} color="#6B7280" />
-          <Text className="text-gray-400 text-sm ml-1">
-            {formatDate(item.createdAt)}
+        <View className="items-end">
+          <View className="flex-row items-center">
+            <Calendar size={12} color="#a3a3a3" />
+            <Text className="text-neutral-400 text-xs font-grotesk ml-1">
+              {formatDate(item.createdAt)}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </Card>
+  );
+
+  const renderSubjectSection = (subject: SubjectGroup) => (
+    <View key={subject.subjectName} className="mb-6">
+      <View className="flex-row items-center mb-4 pb-2 border-b border-neutral-200">
+        <BookOpen size={20} color="#a3a3a3" />
+        <Text className="text-xl font-groteskBold text-black ml-2">
+          {subject.subjectName}
+        </Text>
+        <View className="ml-auto bg-lime-400 px-2 py-1 rounded-full">
+          <Text className="text-black text-xs font-groteskBold">
+            {subject.data.length}
           </Text>
         </View>
       </View>
+      {subject.data.map((document) => renderDocumentCard(document, true))}
     </View>
   );
 
-  const renderSubjectGroup = (item: SubjectGroup) => (
-    <View key={item.subjectName} className="mb-6">
-      <Text className="text-xl font-bold text-white mb-4">
-        {item.subjectName}
-      </Text>
-      <View className="space-y-3">
-        {item.data.map((document) => (
-          <View
-            key={document.$id}
-            className="bg-gray-900 rounded-lg p-4 border border-gray-800"
+  const renderSortOptions = () => (
+    <View className="bg-white border border-neutral-200 rounded-lg p-4 mb-4">
+      <Text className="text-black font-groteskBold mb-3">Sort by</Text>
+      <View className="flex-row flex-wrap gap-2">
+        {[
+          { key: "newest", label: "Newest" },
+          { key: "oldest", label: "Oldest" },
+          { key: "title", label: "Title" },
+          { key: "size", label: "File Size" },
+        ].map((option) => (
+          <TouchableOpacity
+            key={option.key}
+            onPress={() => setSortBy(option.key as SortOption)}
+            className={`px-3 py-2 rounded-full border ${sortBy === option.key
+              ? "bg-lime-400 border-lime-400"
+              : "bg-white border-neutral-200"
+              }`}
           >
-            <View className="flex-row justify-between items-start mb-3">
-              <View className="flex-1">
-                <Text className="text-white font-semibold mb-1">
-                  {document.title}
-                </Text>
-                {document.description && (
-                  <Text className="text-gray-400 text-xs mb-2">
-                    {document.description}
-                  </Text>
-                )}
-              </View>
-              <TouchableOpacity
-                onPress={() => handleDownload(document)}
-                className="bg-white p-2 rounded-lg"
-              >
-                <Download size={16} color="black" />
-              </TouchableOpacity>
-            </View>
-
-            <View className="flex-row justify-between items-center">
-              <View className="flex-row items-center space-x-3">
-                <Text className="text-gray-400 text-xs">
-                  {document.fileName}
-                </Text>
-                <Text className="text-gray-400 text-xs">
-                  {formatFileSize(document.fileSize)}
-                </Text>
-              </View>
-              <Text className="text-gray-400 text-xs">
-                {formatDate(document.createdAt)}
-              </Text>
-            </View>
-          </View>
+            <Text
+              className={`text-sm font-grotesk ${sortBy === option.key ? "text-black font-groteskBold" : "text-neutral-400"
+                }`}
+            >
+              {option.label}
+            </Text>
+          </TouchableOpacity>
         ))}
       </View>
     </View>
   );
 
-  const renderSectionHeader = (title: string) => (
-    <View className="bg-black py-4 border-b border-gray-800 mb-4">
-      <Text className="text-2xl font-bold text-white">{title}</Text>
-    </View>
-  );
-
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-black">
+      <SafeAreaView className="flex-1 bg-neutral-200">
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="white" />
-          <Text className="text-white mt-4">
+          <ActivityIndicator size="large" color="#a3f948" />
+          <Text className="text-black font-grotesk mt-4">
             Loading department materials...
           </Text>
         </View>
@@ -299,61 +319,102 @@ export default function DepartmentScreen() {
   }
 
   const hasContent = departmentCirculars.length > 0 || subjectGroups.length > 0;
+  const totalDocuments = departmentCirculars.length + subjectGroups.reduce((acc, group) => acc + group.data.length, 0);
 
   return (
-    <SafeAreaView className="flex-1 bg-black">
-      <ScrollView className="flex-1">
+    <SafeAreaView className="flex-1 bg-neutral-200">
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 80 }} // Add this line
+      >
         {/* Header */}
-        <View className="px-6 py-6 border-b border-gray-800">
-          <Text className="text-3xl font-bold text-white mb-2">Department</Text>
-          <Text className="text-gray-400">
-            Department circulars and subject-specific materials for{" "}
-            {user?.department}
+        <View className="px-6 py-6 bg-white border-b border-neutral-200">
+          <Text className="text-3xl font-groteskBold text-black mb-2">Department</Text>
+          <Text className="text-neutral-400 font-grotesk">
+            {user?.department} • Semester {user?.semester}
           </Text>
+          {hasContent && (
+            <Text className="text-lime-400 font-groteskBold text-sm mt-1">
+              {totalDocuments} documents available
+            </Text>
+          )}
         </View>
 
-        {/* Search Bar */}
-        <View className="px-6 py-4 border-b border-gray-800">
-          <View className="flex-row items-center bg-gray-900 rounded-lg px-4 py-3">
-            <Search size={20} color="#6B7280" />
+        {/* Search and Filter Bar */}
+        <View className="px-6 py-4 bg-white border-b border-neutral-200">
+          <View className="flex-row items-center bg-neutral-200 rounded-lg px-4 py-3 mb-3">
+            <Search size={20} color="#a3a3a3" />
             <TextInput
-              className="flex-1 ml-3 text-white"
+              className="flex-1 ml-3 text-black font-grotesk"
               placeholder="Search department materials..."
-              placeholderTextColor="#6B7280"
+              placeholderTextColor="#a3a3a3"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
           </View>
+
+          <View className="flex-row items-center justify-between">
+            <TouchableOpacity
+              onPress={() => setShowFilters(!showFilters)}
+              className="flex-row items-center bg-neutral-200 px-3 py-2 rounded-lg"
+            >
+              <Filter size={16} color="#a3a3a3" />
+              <Text className="text-neutral-400 font-grotesk ml-2">Sort & Filter</Text>
+            </TouchableOpacity>
+
+            <View className="flex-row items-center">
+              <SortAsc size={16} color="#a3a3a3" />
+              <Text className="text-neutral-400 font-grotesk ml-1 capitalize">{sortBy}</Text>
+            </View>
+          </View>
         </View>
 
-        {/* Results */}
-        <View className="px-6 pb-6">
+        <View className="px-6 py-4">
+          {showFilters && renderSortOptions()}
+
           {!hasContent ? (
-            <View className="flex-1 justify-center items-center py-12">
-              <Building2 size={48} color="#6B7280" />
-              <Text className="text-gray-400 text-center mt-4">
+            <View className="flex-1 justify-center items-center py-16">
+              <Building2 size={64} color="#a3a3a3" />
+              <Text className="text-neutral-400 font-grotesk text-center mt-4 text-lg">
                 {searchQuery
-                  ? "No department materials match your search criteria"
-                  : "No department materials available for your department/semester"}
+                  ? "No department materials match your search"
+                  : "No materials available for your department"}
+              </Text>
+              <Text className="text-neutral-400 font-grotesk text-center mt-2">
+                Check back later for updates
               </Text>
             </View>
           ) : (
             <>
-              {/* Department Circulars Section */}
-              {departmentCirculars.length > 0 && (
-                <View className="mb-6">
-                  {renderSectionHeader("Department Circulars")}
-                  {departmentCirculars.map((item) =>
-                    renderDepartmentCircular(item),
-                  )}
+              {/* Subject-Specific Materials Section */}
+              {subjectGroups.length > 0 && (
+                <View className="mb-8">
+                  <View className="flex-row items-center mb-4 pb-3 border-b-2 border-lime-400">
+                    <BookOpen size={24} color="black" />
+                    <Text className="text-2xl font-groteskBold text-black ml-2">
+                      Subject Materials
+                    </Text>
+                  </View>
+                  {subjectGroups.map((subject) => renderSubjectSection(subject))}
                 </View>
               )}
 
-              {/* Subject Materials Section */}
-              {subjectGroups.length > 0 && (
-                <View>
-                  {renderSectionHeader("Subject Materials")}
-                  {subjectGroups.map((item) => renderSubjectGroup(item))}
+              {/* Department Circulars Section */}
+              {departmentCirculars.length > 0 && (
+                <View className="mb-6">
+                  <View className="flex-row items-center mb-4 pb-3 border-b-2 border-lime-400">
+                    <Building2 size={24} color="black" />
+                    <Text className="text-2xl font-groteskBold text-black ml-2">
+                      Department Circulars
+                    </Text>
+                    <View className="ml-auto bg-lime-400 px-3 py-1 rounded-full">
+                      <Text className="text-black text-sm font-groteskBold">
+                        {departmentCirculars.length}
+                      </Text>
+                    </View>
+                  </View>
+                  {departmentCirculars.map((document) => renderDocumentCard(document))}
                 </View>
               )}
             </>

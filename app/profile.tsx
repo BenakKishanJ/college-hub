@@ -25,10 +25,14 @@ import {
   CheckCircle,
   Calendar,
   Key,
+  ArrowLeft,
+  LogOut, // Added LogOut icon
 } from "lucide-react-native";
 import { Picker } from "@react-native-picker/picker";
 import { router } from "expo-router";
 import { AuthGuard } from "../components/AuthGuard";
+import { Card } from "../components/ui/card";
+import { Button, ButtonText } from "../components/ui/button";
 
 // Define department options
 const DEPARTMENT_OPTIONS = [
@@ -57,7 +61,7 @@ const SEMESTER_OPTIONS = [
 ];
 
 export default function ProfileScreen() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, logout } = useAuth(); // Added logout from useAuth
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -163,13 +167,24 @@ export default function ProfileScreen() {
     setIsEditing(false);
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.replace("/auth");
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to logout");
+    }
+  };
+
   if (isLoading || authLoading) {
     return (
       <AuthGuard>
-        <SafeAreaView className="flex-1 bg-black">
+        <SafeAreaView className="flex-1 bg-neutral-200">
           <View className="flex-1 justify-center items-center">
-            <ActivityIndicator size="large" color="white" />
-            <Text className="text-white mt-4">Loading profile...</Text>
+            <ActivityIndicator size="large" color="#a3f948" />
+            <Text className="text-black font-grotesk mt-4">
+              Loading profile...
+            </Text>
           </View>
         </SafeAreaView>
       </AuthGuard>
@@ -179,9 +194,9 @@ export default function ProfileScreen() {
   if (!user) {
     return (
       <AuthGuard>
-        <SafeAreaView className="flex-1 bg-black">
+        <SafeAreaView className="flex-1 bg-neutral-200">
           <View className="flex-1 justify-center items-center p-4">
-            <Text className="text-lg text-gray-400">
+            <Text className="text-lg text-neutral-400 font-grotesk">
               Please log in to view your profile
             </Text>
           </View>
@@ -192,287 +207,327 @@ export default function ProfileScreen() {
 
   return (
     <AuthGuard>
-      <SafeAreaView className="flex-1 bg-black">
+      <SafeAreaView className="flex-1 bg-neutral-200">
         <ScrollView className="flex-1">
           {/* Header */}
-          <View className="px-6 py-4 border-b border-gray-800">
+          <View className="px-6 py-4 bg-white border-b border-neutral-200">
             <View className="flex-row items-center justify-between">
-              <TouchableOpacity onPress={() => router.back()} className="p-2">
-                <X size={24} color="white" />
+              <TouchableOpacity
+                onPress={() => router.back()}
+                className="bg-neutral-200 p-2 rounded-lg"
+              >
+                <ArrowLeft size={24} color="black" />
               </TouchableOpacity>
-              <Text className="text-2xl font-bold text-white">Profile</Text>
+              <Text className="text-2xl font-groteskBold text-black">
+                Profile
+              </Text>
               <View className="w-10" /> {/* Spacer for balance */}
             </View>
           </View>
 
           {/* Profile Completion Banner */}
           {!isProfileComplete() && (
-            <View className="bg-yellow-900 border-b border-yellow-700 px-6 py-4">
+            <View className="bg-lime-400 border-b border-lime-500 px-6 py-4">
               <View className="flex-row items-center">
-                <AlertCircle size={20} color="#FBBF24" />
-                <Text className="text-yellow-200 ml-3 flex-1">
+                <AlertCircle size={20} color="black" />
+                <Text className="text-black font-groteskBold ml-3 flex-1">
                   Complete your profile to access all features
                 </Text>
               </View>
             </View>
           )}
 
-          {/* Profile Card */}
+          {/* Profile Content */}
           <View className="px-6 py-6">
             {/* User Role Badge */}
             <View className="mb-6">
               <View
-                className={`inline-flex px-3 py-1 rounded-full ${user.role === "teacher" ? "bg-purple-900" : "bg-blue-900"
+                className={`self-start px-4 py-2 rounded-full ${user.role === "teacher" ? "bg-lime-400" : "bg-lime-400"
                   }`}
               >
-                <Text
-                  className={`text-sm font-medium ${user.role === "teacher"
-                      ? "text-purple-200"
-                      : "text-blue-200"
-                    }`}
-                >
+                <Text className="text-black font-groteskBold text-sm">
                   {user.role?.toUpperCase()}
                 </Text>
               </View>
             </View>
 
-            {/* Profile Header */}
-            <View className="flex-row items-center justify-between mb-6">
-              <View className="flex-row items-center">
-                <View className="bg-gray-800 rounded-full w-16 h-16 items-center justify-center mr-4">
-                  <User size={28} color="white" />
-                </View>
-                <View>
-                  {!isEditing ? (
-                    <Text className="text-xl font-semibold text-white">
-                      {user.displayName || "No name set"}
-                    </Text>
-                  ) : (
-                    <TextInput
-                      className="text-xl font-semibold text-white border-b-2 border-blue-500 pb-1"
-                      value={formData.displayName}
-                      onChangeText={(text) =>
-                        setFormData({ ...formData, displayName: text })
-                      }
-                      placeholder="Enter your name"
-                      placeholderTextColor="#6B7280"
-                    />
-                  )}
-                  <Text className="text-gray-400">{user.email}</Text>
-                </View>
-              </View>
-
-              {!isEditing ? (
-                <TouchableOpacity
-                  onPress={() => setIsEditing(true)}
-                  className="bg-gray-800 p-3 rounded-lg"
-                >
-                  <Edit3 size={20} color="white" />
-                </TouchableOpacity>
-              ) : (
-                <View className="flex-row space-x-2">
-                  <TouchableOpacity
-                    onPress={handleCancel}
-                    className="bg-gray-800 p-3 rounded-lg"
-                  >
-                    <X size={20} color="white" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleSave}
-                    disabled={isSaving}
-                    className="bg-white p-3 rounded-lg"
-                    style={{ opacity: isSaving ? 0.7 : 1 }}
-                  >
-                    {isSaving ? (
-                      <ActivityIndicator color="black" size="small" />
+            {/* Profile Header Card */}
+            <Card className="bg-white border border-neutral-200 p-6 mb-6">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center flex-1">
+                  <View className="bg-lime-400 rounded-full w-16 h-16 items-center justify-center mr-4">
+                    <User size={28} color="black" />
+                  </View>
+                  <View className="flex-1">
+                    {!isEditing ? (
+                      <Text className="text-xl font-groteskBold text-black mb-1">
+                        {user.displayName || "No name set"}
+                      </Text>
                     ) : (
-                      <Save size={20} color="black" />
+                      <TextInput
+                        className="text-xl font-groteskBold text-black border-b-2 border-lime-400 pb-1 mb-1"
+                        value={formData.displayName}
+                        onChangeText={(text) =>
+                          setFormData({ ...formData, displayName: text })
+                        }
+                        placeholder="Enter your name"
+                        placeholderTextColor="#a3a3a3"
+                      />
                     )}
-                  </TouchableOpacity>
+                    <Text className="text-neutral-400 font-grotesk">
+                      {user.email}
+                    </Text>
+                  </View>
                 </View>
-              )}
-            </View>
+
+                {!isEditing ? (
+                  <Button
+                    onPress={() => setIsEditing(true)}
+                    className="bg-lime-400 p-3 rounded-lg ml-4"
+                  >
+                    <Edit3 size={20} color="black" />
+                  </Button>
+                ) : (
+                  <View className="flex-row space-x-2 ml-4">
+                    <Button
+                      onPress={handleCancel}
+                      className="bg-neutral-200 p-3 rounded-lg"
+                    >
+                      <X size={20} color="black" />
+                    </Button>
+                    <Button
+                      onPress={handleSave}
+                      disabled={isSaving}
+                      className="bg-lime-400 p-3 rounded-lg"
+                      style={{ opacity: isSaving ? 0.7 : 1 }}
+                    >
+                      {isSaving ? (
+                        <ActivityIndicator color="black" size="small" />
+                      ) : (
+                        <Save size={20} color="black" />
+                      )}
+                    </Button>
+                  </View>
+                )}
+              </View>
+            </Card>
 
             {/* Profile Details */}
             <View className="space-y-4">
               {/* Department */}
-              <View className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-                <View className="flex-row items-center mb-2">
-                  <Building size={18} color="#6B7280" />
-                  <Text className="text-gray-400 ml-2">Department</Text>
+              <Card className="bg-white border border-neutral-200 p-4">
+                <View className="flex-row items-center mb-3">
+                  <Building size={20} color="#a3a3a3" />
+                  <Text className="text-neutral-400 font-groteskBold ml-2">
+                    Department
+                  </Text>
                 </View>
                 {!isEditing ? (
-                  <Text className="text-white text-lg">
+                  <Text className="text-black font-grotesk text-lg">
                     {user.department || "Not set"}
                   </Text>
                 ) : (
-                  <View className="border border-gray-700 rounded-lg bg-gray-800">
+                  <View className="border border-neutral-200 rounded-lg bg-neutral-200">
                     <Picker
                       selectedValue={formData.department}
                       onValueChange={(value) =>
                         setFormData({ ...formData, department: value })
                       }
-                      style={{ color: "white", height: 50 }}
-                      dropdownIconColor="white"
+                      style={{ color: "black", height: 50 }}
+                      dropdownIconColor="black"
                     >
                       <Picker.Item
                         label="Select Department"
                         value=""
-                        color="#6B7280"
+                        color="#a3a3a3"
                       />
                       {DEPARTMENT_OPTIONS.map((dept) => (
                         <Picker.Item
                           key={dept}
                           label={dept}
                           value={dept}
-                          color="white"
+                          color="black"
                         />
                       ))}
                     </Picker>
                   </View>
                 )}
-              </View>
+              </Card>
 
               {/* Semester (Only for students) */}
               {user.role === "student" && (
-                <View className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-                  <View className="flex-row items-center mb-2">
-                    <BookOpen size={18} color="#6B7280" />
-                    <Text className="text-gray-400 ml-2">Semester</Text>
+                <Card className="bg-white border border-neutral-200 p-4">
+                  <View className="flex-row items-center mb-3">
+                    <BookOpen size={20} color="#a3a3a3" />
+                    <Text className="text-neutral-400 font-groteskBold ml-2">
+                      Semester
+                    </Text>
                   </View>
                   {!isEditing ? (
-                    <Text className="text-white text-lg">
+                    <Text className="text-black font-grotesk text-lg">
                       {user.semester || "Not set"}
                     </Text>
                   ) : (
-                    <View className="border border-gray-700 rounded-lg bg-gray-800">
+                    <View className="border border-neutral-200 rounded-lg bg-neutral-200">
                       <Picker
                         selectedValue={formData.semester}
                         onValueChange={(value) =>
                           setFormData({ ...formData, semester: value })
                         }
-                        style={{ color: "white", height: 50 }}
-                        dropdownIconColor="white"
+                        style={{ color: "black", height: 50 }}
+                        dropdownIconColor="black"
                       >
                         <Picker.Item
                           label="Select Semester"
                           value=""
-                          color="#6B7280"
+                          color="#a3a3a3"
                         />
                         {SEMESTER_OPTIONS.map((sem) => (
                           <Picker.Item
                             key={sem}
                             label={sem}
                             value={sem}
-                            color="white"
+                            color="black"
                           />
                         ))}
                       </Picker>
                     </View>
                   )}
-                </View>
+                </Card>
               )}
 
               {/* Phone Number */}
-              <View className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-                <View className="flex-row items-center mb-2">
-                  <Phone size={18} color="#6B7280" />
-                  <Text className="text-gray-400 ml-2">Phone Number</Text>
+              <Card className="bg-white border border-neutral-200 p-4">
+                <View className="flex-row items-center mb-3">
+                  <Phone size={20} color="#a3a3a3" />
+                  <Text className="text-neutral-400 font-groteskBold ml-2">
+                    Phone Number
+                  </Text>
                 </View>
                 {!isEditing ? (
-                  <Text className="text-white text-lg">
+                  <Text className="text-black font-grotesk text-lg">
                     {user.phoneNumber || "Not set"}
                   </Text>
                 ) : (
                   <TextInput
-                    className="text-white text-lg border border-gray-700 rounded-lg p-3 bg-gray-800"
+                    className="text-black font-grotesk text-lg border border-neutral-200 rounded-lg p-3 bg-neutral-200"
                     value={formData.phoneNumber}
                     onChangeText={(text) =>
                       setFormData({ ...formData, phoneNumber: text })
                     }
                     placeholder="Enter phone number"
-                    placeholderTextColor="#6B7280"
+                    placeholderTextColor="#a3a3a3"
                     keyboardType="phone-pad"
                   />
                 )}
-              </View>
+              </Card>
 
               {/* Email (Read-only) */}
-              <View className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-                <View className="flex-row items-center mb-2">
-                  <Mail size={18} color="#6B7280" />
-                  <Text className="text-gray-400 ml-2">Email</Text>
+              <Card className="bg-white border border-neutral-200 p-4">
+                <View className="flex-row items-center mb-3">
+                  <Mail size={20} color="#a3a3a3" />
+                  <Text className="text-neutral-400 font-groteskBold ml-2">
+                    Email
+                  </Text>
                 </View>
-                <Text className="text-white text-lg">{user.email}</Text>
-              </View>
+                <Text className="text-black font-grotesk text-lg">
+                  {user.email}
+                </Text>
+              </Card>
 
               {/* Profile Completion Status */}
-              <View className="bg-gray-900 rounded-lg p-4 border border-gray-800">
+              <Card className="bg-white border border-neutral-200 p-4">
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center">
                     {isProfileComplete() ? (
-                      <CheckCircle size={18} color="#10B981" />
+                      <CheckCircle size={20} color="#a3f948" />
                     ) : (
-                      <AlertCircle size={18} color="#F59E0B" />
+                      <AlertCircle size={20} color="#F59E0B" />
                     )}
-                    <Text className="text-gray-400 ml-2">Profile Status</Text>
+                    <Text className="text-neutral-400 font-groteskBold ml-2">
+                      Profile Status
+                    </Text>
                   </View>
-                  <Text
-                    className={`font-semibold ${isProfileComplete() ? "text-green-400" : "text-yellow-400"
+                  <View
+                    className={`px-3 py-1 rounded-full ${isProfileComplete() ? "bg-lime-400" : "bg-yellow-400"
                       }`}
                   >
-                    {isProfileComplete() ? "Complete" : "Incomplete"}
-                  </Text>
+                    <Text className="font-groteskBold text-black text-sm">
+                      {isProfileComplete() ? "Complete" : "Incomplete"}
+                    </Text>
+                  </View>
                 </View>
                 {!isProfileComplete() && (
-                  <Text className="text-gray-400 text-sm mt-2">
+                  <Text className="text-neutral-400 font-grotesk text-sm mt-3">
                     Please fill all required fields to complete your profile
                   </Text>
                 )}
-              </View>
+              </Card>
             </View>
           </View>
 
-          {/* Account Information */}
+          {/* Account Information Section */}
           <View className="px-6 pb-8">
-            <Text className="text-xl font-bold text-white mb-4">
+            <Text className="text-xl font-groteskBold text-black mb-4">
               Account Information
             </Text>
-            <View className="space-y-3">
-              <View className="flex-row items-center justify-between py-3 border-b border-gray-800">
-                <View className="flex-row items-center">
-                  <Calendar size={18} color="#6B7280" />
-                  <Text className="text-gray-400 ml-2">Member since</Text>
-                </View>
-                <Text className="text-white">
-                  {new Date(user.$createdAt).toLocaleDateString()}
-                </Text>
-              </View>
 
-              <View className="flex-row items-center justify-between py-3 border-b border-gray-800">
-                <View className="flex-row items-center">
-                  <Calendar size={18} color="#6B7280" />
-                  <Text className="text-gray-400 ml-2">Last updated</Text>
+            <Card className="bg-white border border-neutral-200 p-4">
+              <View className="space-y-4">
+                <View className="flex-row items-center justify-between py-2 border-b border-neutral-200">
+                  <View className="flex-row items-center">
+                    <Calendar size={18} color="#a3a3a3" />
+                    <Text className="text-neutral-400 font-grotesk ml-2">
+                      Member since
+                    </Text>
+                  </View>
+                  <Text className="text-black font-grotesk">
+                    {new Date(user.$createdAt).toLocaleDateString()}
+                  </Text>
                 </View>
-                <Text className="text-white">
-                  {new Date(user.$updatedAt).toLocaleDateString()}
-                </Text>
-              </View>
 
-              <View className="flex-row items-center justify-between py-3">
-                <View className="flex-row items-center">
-                  <Key size={18} color="#6B7280" />
-                  <Text className="text-gray-400 ml-2">User ID</Text>
+                <View className="flex-row items-center justify-between py-2 border-b border-neutral-200">
+                  <View className="flex-row items-center">
+                    <Calendar size={18} color="#a3a3a3" />
+                    <Text className="text-neutral-400 font-grotesk ml-2">
+                      Last updated
+                    </Text>
+                  </View>
+                  <Text className="text-black font-grotesk">
+                    {new Date(user.$updatedAt).toLocaleDateString()}
+                  </Text>
                 </View>
-                <Text
-                  className="text-gray-400 text-xs"
-                  numberOfLines={1}
-                  ellipsizeMode="middle"
-                >
-                  {user.$id}
-                </Text>
+
+                <View className="flex-row items-center justify-between py-2">
+                  <View className="flex-row items-center">
+                    <Key size={18} color="#a3a3a3" />
+                    <Text className="text-neutral-400 font-grotesk ml-2">
+                      User ID
+                    </Text>
+                  </View>
+                  <Text
+                    className="text-neutral-400 font-grotesk text-xs"
+                    numberOfLines={1}
+                    ellipsizeMode="middle"
+                  >
+                    {user.$id}
+                  </Text>
+                </View>
               </View>
-            </View>
+            </Card>
+          </View>
+
+          {/* Logout Button */}
+          <View className="px-6 pb-8">
+            <Button
+              variant="solid"
+              size="md"
+              action="primary"
+              onPress={handleLogout}
+            >
+              <LogOut size={20} color="white" />
+              <ButtonText>Logout</ButtonText>
+            </Button>
           </View>
         </ScrollView>
       </SafeAreaView>

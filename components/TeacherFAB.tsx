@@ -2,6 +2,7 @@
 import { useAuth } from "../context/AuthContext";
 import FloatingActionButton from "./FloatingActionButton";
 import { router } from "expo-router";
+import { View } from "react-native";
 
 export default function TeacherFAB() {
   const { user } = useAuth();
@@ -10,10 +11,13 @@ export default function TeacherFAB() {
     return null;
   }
 
+  // Render the FAB outside of the tab content area
   return (
-    <FloatingActionButton
-      onPress={() => router.push("/upload")}
-      visible={user?.role === "teacher"}
-    />
+    <View className="absolute bottom-20 right-4 z-50">
+      <FloatingActionButton
+        onPress={() => router.push("/upload")}
+        visible={user?.role === "teacher"}
+      />
+    </View>
   );
 }

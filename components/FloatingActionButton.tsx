@@ -1,4 +1,4 @@
-// components/FloatingActionButton.tsx
+// components/FloatingActionButton.tsx (updated)
 import { TouchableOpacity, View } from "react-native";
 import { Plus } from "lucide-react-native";
 
@@ -16,18 +16,18 @@ export default function FloatingActionButton({
   if (!visible) return null;
 
   const positionStyles = {
-    "bottom-right": "bottom-4 right-4",
-    "bottom-center": "bottom-4 self-center",
-    "bottom-left": "bottom-4 left-4",
+    "bottom-right": "bottom-20 right-4", // Changed from bottom-4 to bottom-20
+    "bottom-center": "bottom-20 self-center",
+    "bottom-left": "bottom-20 left-4",
   };
 
   return (
-    <View className={`absolute ${positionStyles[position]}`}>
+    <View className={`absolute ${positionStyles[position]} z-50`}>
       <TouchableOpacity
         onPress={onPress}
-        className="bg-black w-16 h-16 rounded-full items-center justify-center shadow-lg shadow-black/30"
+        className="bg-lime-400 w-16 h-16 rounded-full items-center justify-center shadow-lg shadow-black/30"
       >
-        <Plus size={24} color="white" />
+        <Plus size={24} color="black" />
       </TouchableOpacity>
     </View>
   );

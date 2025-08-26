@@ -11,31 +11,34 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Search,
-  Filter,
   Download,
   FileText,
   Calendar,
+  Briefcase,
+  Users,
+  Trophy,
+  GraduationCap,
+  SortAsc,
+  SortDesc,
 } from "lucide-react-native";
 import { databases, APPWRITE_CONFIG } from "../../lib/appwrite";
 import { Query } from "appwrite";
 import { TextInput } from "../../components/TextInput";
+import { Card } from "@/components/ui/card";
 
 interface Document {
   $id: string;
   title: string;
   fileUrl: string;
   category: string;
-  description?: string;
-  fileName: string;
-  fileSize: number;
-  createdAt: string;
+  targetDepartments?: string[];
+  targetSemesters?: string[];
   uploadedBy: string;
-}
-
-// Define the response type from Appwrite
-interface AppwriteResponse {
-  documents: Document[];
-  total: number;
+  createdAt: string;
+  subjectName?: string;
+  description?: string;
+  fileName?: string;
+  fileSize?: number;
 }
 
 export default function OpportunitiesScreen() {
@@ -44,6 +47,9 @@ export default function OpportunitiesScreen() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
+  const [selectedType, setSelectedType] = useState<
+    "all" | "Opportunities" | "Placement" | "Extracurricular" | "Internships"
+  >("all");
 
   useEffect(() => {
     loadDocuments();
@@ -51,7 +57,7 @@ export default function OpportunitiesScreen() {
 
   useEffect(() => {
     filterAndSortDocuments();
-  }, [documents, searchQuery, sortBy]);
+  }, [documents, searchQuery, sortBy, selectedType]);
 
   const loadDocuments = async () => {
     try {
@@ -65,8 +71,11 @@ export default function OpportunitiesScreen() {
       const response = await databases.listDocuments(
         APPWRITE_CONFIG.databaseId,
         APPWRITE_CONFIG.collections.documents,
-        [Query.contains("category", categories), Query.orderDesc("createdAt")],
-      ); // Cast the response to our Document type
+        [
+          Query.or(categories.map((cat) => Query.equal("category", cat))),
+          Query.orderDesc("createdAt"),
+        ],
+      );
       const docs = response.documents as unknown as Document[];
       setDocuments(docs);
     } catch (error) {
@@ -80,12 +89,18 @@ export default function OpportunitiesScreen() {
   const filterAndSortDocuments = () => {
     let filtered = [...documents];
 
+    // Filter by type
+    if (selectedType !== "all") {
+      filtered = filtered.filter((doc) => doc.category === selectedType);
+    }
+
     // Filter by search query
     if (searchQuery) {
       filtered = filtered.filter(
         (doc) =>
           doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          doc.description?.toLowerCase().includes(searchQuery.toLowerCase()),
+          doc.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          doc.subjectName?.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
 
@@ -115,10 +130,8 @@ export default function OpportunitiesScreen() {
         {
           text: "Download",
           onPress: () => {
-            // For now, just log the download
-            // You can implement actual download using expo-file-system
             console.log("Downloading:", document.fileUrl);
-            // Example: Linking.openURL(document.fileUrl);
+            // Implement actual download logic here
           },
         },
       ]);
@@ -128,8 +141,8 @@ export default function OpportunitiesScreen() {
     }
   };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 B";
+  const formatFileSize = (bytes?: number): string => {
+    if (!bytes || bytes === 0) return "Unknown size";
     const k = 1024;
     const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -144,73 +157,166 @@ export default function OpportunitiesScreen() {
     });
   };
 
+  const getCategoryIcon = (category: string) => {
+    switch (category.toLowerCase()) {
+      case "placement":
+        return <Briefcase size={16} color="#a3a3a3" />;
+      case "internships":
+        return <GraduationCap size={16} color="#a3a3a3" />;
+      case "extracurricular":
+        return <Trophy size={16} color="#a3a3a3" />;
+      case "opportunities":
+        return <Users size={16} color="#a3a3a3" />;
+      default:
+        return <FileText size={16} color="#a3a3a3" />;
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category.toLowerCase()) {
+      case "placement":
+        return "bg-green-100 text-green-800";
+      case "internships":
+        return "bg-blue-100 text-blue-800";
+      case "extracurricular":
+        return "bg-purple-100 text-purple-800";
+      case "opportunities":
+        return "bg-orange-100 text-orange-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getFilterDisplayName = (type: string) => {
+    switch (type) {
+      case "all":
+        return "All";
+      case "Extracurricular":
+        return "Extra";
+      case "Internships":
+        return "Internships";
+      case "Placement":
+        return "Placement";
+      case "Opportunities":
+        return "General";
+      default:
+        return type;
+    }
+  };
+
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-black">
+      <SafeAreaView className="flex-1 bg-neutral-200">
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="white" />
-          <Text className="text-white mt-4">Loading opportunities...</Text>
+          <ActivityIndicator size="large" color="#a3e635" />
+          <Text className="text-black mt-4 font-grotesk">
+            Loading opportunities...
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-black">
-      <ScrollView className="flex-1">
+    <SafeAreaView className="flex-1 bg-neutral-200">
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 80 }} // Add this line
+      >
         {/* Header */}
-        <View className="px-6 py-6 border-b border-gray-800">
-          <Text className="text-3xl font-bold text-white mb-2">
+        <View className="px-6 pt-6 pb-4">
+          <Text className="text-3xl font-groteskBold text-black mb-2">
             Opportunities
           </Text>
-          <Text className="text-gray-400">
+          <Text className="text-neutral-400 font-grotesk text-base">
             Discover internships, placements, and career opportunities
           </Text>
         </View>
 
-        {/* Search and Filter Bar */}
-        <View className="px-6 py-4 border-b border-gray-800">
-          <View className="flex-row items-center bg-gray-900 rounded-lg px-4 py-3 mb-4">
-            <Search size={20} color="#6B7280" />
+        {/* Search Bar */}
+        <View className="px-6 mb-4">
+          <View className="flex-row items-center bg-white rounded-2xl px-4 py-4 shadow-sm border border-neutral-300">
+            <Search size={20} color="#a3a3a3" />
             <TextInput
-              className="flex-1 ml-3 text-white"
-              placeholder="Search opportunities..."
-              placeholderTextColor="#6B7280"
+              className="flex-1 ml-3 text-black font-grotesk text-base"
+              placeholder="Search opportunities, companies..."
+              placeholderTextColor="#a3a3a3"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
           </View>
+        </View>
 
-          <View className="flex-row space-x-3">
-            {/* Sort Button */}
-            <TouchableOpacity
-              className="bg-gray-900 px-4 py-2 rounded-lg flex-row items-center"
-              onPress={() =>
-                setSortBy(sortBy === "newest" ? "oldest" : "newest")
-              }
-            >
-              <Text className="text-white">
-                Sort: {sortBy === "newest" ? "Newest" : "Oldest"}
-              </Text>
-            </TouchableOpacity>
-          </View>
+        {/* Filter and Sort Row */}
+        <View className="px-6 mb-6">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="mb-4"
+          >
+            <View className="flex-row space-x-3">
+              {/* Category Filter Buttons */}
+              {(
+                [
+                  "all",
+                  "Placement",
+                  "Internships",
+                  "Extracurricular",
+                  "Opportunities",
+                ] as const
+              ).map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  className={`px-6 py-3 rounded-full border ${selectedType === type
+                      ? "bg-lime-400 border-lime-400"
+                      : "bg-white border-neutral-300"
+                    }`}
+                  onPress={() => setSelectedType(type)}
+                >
+                  <Text
+                    className={`font-grotesk font-medium ${selectedType === type ? "text-black" : "text-neutral-400"
+                      }`}
+                  >
+                    {getFilterDisplayName(type)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+
+          {/* Sort Button */}
+          <TouchableOpacity
+            className="bg-white border border-neutral-300 px-4 py-3 rounded-2xl flex-row items-center justify-between w-40"
+            onPress={() => setSortBy(sortBy === "newest" ? "oldest" : "newest")}
+          >
+            <Text className="text-black font-grotesk">
+              {sortBy === "newest" ? "Newest" : "Oldest"}
+            </Text>
+            {sortBy === "newest" ? (
+              <SortDesc size={16} color="#000" />
+            ) : (
+              <SortAsc size={16} color="#000" />
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Results Count */}
-        <View className="px-6 py-4">
-          <Text className="text-gray-400">
-            {filteredDocuments.length} opportunity
-            {filteredDocuments.length !== 1 ? "ies" : ""} found
+        <View className="px-6 mb-4">
+          <Text className="text-neutral-400 font-grotesk">
+            {filteredDocuments.length} opportunit
+            {filteredDocuments.length !== 1 ? "ies" : "y"} found
+            {selectedType !== "all" && ` in ${selectedType}`}
           </Text>
         </View>
 
-        {/* Documents Grid */}
+        {/* Opportunities List */}
         <View className="px-6 pb-6">
           {filteredDocuments.length === 0 ? (
-            <View className="flex-1 justify-center items-center py-12">
-              <FileText size={48} color="#6B7280" />
-              <Text className="text-gray-400 text-center mt-4">
-                {searchQuery
+            <View className="flex-1 justify-center items-center py-16 bg-white rounded-2xl border border-neutral-300">
+              <Briefcase size={48} color="#a3a3a3" />
+              <Text className="text-neutral-400 text-center mt-4 font-grotesk text-base px-8">
+                {searchQuery || selectedType !== "all"
                   ? "No opportunities match your search criteria"
                   : "No opportunities available yet"}
               </Text>
@@ -218,50 +324,100 @@ export default function OpportunitiesScreen() {
           ) : (
             <View className="space-y-4">
               {filteredDocuments.map((document) => (
-                <View
+                <Card
                   key={document.$id}
-                  className="bg-gray-900 rounded-lg p-6 border border-gray-800"
+                  className="bg-white rounded-2xl p-6 border border-neutral-300 shadow-sm"
                 >
                   <View className="flex-row justify-between items-start mb-4">
-                    <View className="flex-1">
-                      <Text className="text-white font-semibold text-lg mb-1">
+                    <View className="flex-1 pr-4">
+                      {/* Category Badge */}
+                      <View className="flex-row items-center mb-3">
+                        <View className="flex-row items-center bg-neutral-200 px-3 py-1 rounded-full">
+                          {getCategoryIcon(document.category)}
+                          <Text className="text-neutral-400 text-sm ml-2 font-grotesk">
+                            {document.category}
+                          </Text>
+                        </View>
+                        {document.subjectName && (
+                          <View className="bg-lime-400 px-3 py-1 rounded-full ml-2">
+                            <Text className="text-black text-xs font-grotesk font-medium">
+                              {document.subjectName}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Title */}
+                      <Text className="text-black font-groteskBold text-lg mb-2 leading-6">
                         {document.title}
                       </Text>
+
+                      {/* Description */}
                       {document.description && (
-                        <Text className="text-gray-400 text-sm mb-2">
+                        <Text className="text-neutral-400 text-sm mb-3 font-grotesk leading-5">
                           {document.description}
                         </Text>
                       )}
+
+                      {/* Department and Semester Tags */}
+                      {(document.targetDepartments ||
+                        document.targetSemesters) && (
+                          <View className="flex-row flex-wrap mb-3">
+                            {document.targetDepartments?.map((dept, index) => (
+                              <View
+                                key={`dept-${index}`}
+                                className="bg-blue-100 px-2 py-1 rounded-lg mr-2 mb-1"
+                              >
+                                <Text className="text-blue-800 text-xs font-grotesk">
+                                  {dept}
+                                </Text>
+                              </View>
+                            ))}
+                            {document.targetSemesters?.map((sem, index) => (
+                              <View
+                                key={`sem-${index}`}
+                                className="bg-purple-100 px-2 py-1 rounded-lg mr-2 mb-1"
+                              >
+                                <Text className="text-purple-800 text-xs font-grotesk">
+                                  Sem {sem}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+                        )}
                     </View>
+
+                    {/* Download Button */}
                     <TouchableOpacity
                       onPress={() => handleDownload(document)}
-                      className="bg-white p-2 rounded-lg"
+                      className="bg-lime-400 p-3 rounded-full"
                     >
                       <Download size={20} color="black" />
                     </TouchableOpacity>
                   </View>
 
-                  <View className="flex-row justify-between items-center">
+                  {/* File Info and Date */}
+                  <View className="flex-row justify-between items-center pt-4 border-t border-neutral-200">
                     <View className="flex-row items-center space-x-4">
                       <View className="flex-row items-center">
-                        <FileText size={14} color="#6B7280" />
-                        <Text className="text-gray-400 text-sm ml-1">
-                          {document.fileName}
+                        <FileText size={14} color="#a3a3a3" />
+                        <Text className="text-neutral-400 text-sm ml-1 font-grotesk">
+                          {document.fileName || "Document"}
                         </Text>
                       </View>
-                      <Text className="text-gray-400 text-sm">
+                      <Text className="text-neutral-400 text-sm font-grotesk">
                         {formatFileSize(document.fileSize)}
                       </Text>
                     </View>
 
                     <View className="flex-row items-center">
-                      <Calendar size={14} color="#6B7280" />
-                      <Text className="text-gray-400 text-sm ml-1">
+                      <Calendar size={14} color="#a3a3a3" />
+                      <Text className="text-neutral-400 text-sm ml-1 font-grotesk">
                         {formatDate(document.createdAt)}
                       </Text>
                     </View>
                   </View>
-                </View>
+                </Card>
               ))}
             </View>
           )}

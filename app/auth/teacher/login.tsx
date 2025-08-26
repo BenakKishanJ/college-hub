@@ -1,4 +1,5 @@
-import { useState } from "react";
+// auth/teacher/login.tsx
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,20 +8,55 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  Animated,
+  Dimensions,
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "../../../context/AuthContext";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Users,
+  ArrowRight,
+  GraduationCap,
+} from "lucide-react-native";
+import { Card } from "../../../components/ui/card";
+import { Button, ButtonText } from "../../../components/ui/button";
 import { verifyTeacherSecretCode } from "../../../lib/appwrite";
+
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function TeacherLoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [secretCode, setSecretCode] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showSecretCode, setShowSecretCode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(50));
   const { login } = useAuth();
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const validateInputs = () => {
     if (!email.trim() || !password || !secretCode.trim()) {
@@ -49,7 +85,6 @@ export default function TeacherLoginScreen() {
     setIsVerifyingCode(true);
 
     try {
-      // Verify the secret code on the server side first
       const isValidCode = await verifyTeacherSecretCode(secretCode.trim());
       setIsVerifyingCode(false);
 
@@ -62,10 +97,8 @@ export default function TeacherLoginScreen() {
         return;
       }
 
-      // Login the user and verify they have teacher role
       const user = await login(email.toLowerCase().trim(), password, "teacher");
 
-      // Additional verification that the user has teacher role
       if (user.role !== "teacher") {
         Alert.alert(
           "Error",
@@ -78,7 +111,6 @@ export default function TeacherLoginScreen() {
       router.replace("/(tabs)");
     } catch (error: any) {
       console.error("Teacher login error:", error);
-
       let errorMessage = "Login failed. Please try again.";
 
       if (error.code === 401 || error.message.includes("Invalid credentials")) {
@@ -110,105 +142,187 @@ export default function TeacherLoginScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["bottom", "left", "right"]}>
+    <SafeAreaView className="flex-1 bg-neutral-200">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          padding: 16,
-          backgroundColor: "#f3f4f6",
-        }}
+        className="flex-1"
       >
-        <Text className="text-3xl font-bold text-center text-gray-900 mb-8">
-          Teacher Login
-        </Text>
-
-        <View className="bg-white p-6 rounded-lg shadow-sm">
-          <Text className="text-2xl font-semibold text-gray-800 mb-6 text-center">
-            College Hub - Teachers
-          </Text>
-
-          <TextInput
-            className="border border-gray-300 rounded-lg p-4 mb-4"
-            placeholder="Email"
-            value={email}
-            onChangeText={(text) => setEmail(text.toLowerCase())}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoCorrect={false}
-            editable={!isLoading}
-            maxLength={100}
-          />
-
-          <TextInput
-            className="border border-gray-300 rounded-lg p-4 mb-4"
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCorrect={false}
-            editable={!isLoading}
-            maxLength={128}
-          />
-
-          <TextInput
-            className="border border-gray-300 rounded-lg p-4 mb-6"
-            placeholder="Teacher Secret Code"
-            value={secretCode}
-            onChangeText={setSecretCode}
-            secureTextEntry
-            autoCorrect={false}
-            editable={!isLoading}
-            maxLength={50}
-          />
-
-          <TouchableOpacity
-            className="bg-blue-500 p-4 rounded-lg items-center justify-center"
-            onPress={handleTeacherLogin}
-            disabled={isLoading}
-            style={{ opacity: isLoading ? 0.7 : 1 }}
-          >
-            {isLoading ? (
-              <View className="flex-row items-center">
-                {isVerifyingCode ? (
-                  <Text className="text-white font-semibold">
-                    Verifying code...
-                  </Text>
-                ) : (
-                  <>
-                    <ActivityIndicator color="white" size="small" />
-                    <Text className="text-white font-semibold ml-2">
-                      Logging in...
-                    </Text>
-                  </>
-                )}
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View className="flex-1 justify-center px-6 py-8">
+            <Animated.View
+              style={{
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              }}
+              className="items-center mb-12"
+            >
+              <View className="bg-lime-400 rounded-full p-6 mb-6">
+                <GraduationCap size={48} color="black" />
               </View>
-            ) : (
-              <Text className="text-white font-semibold">Login as Teacher</Text>
-            )}
-          </TouchableOpacity>
 
-          <View className="mt-4 flex-row justify-center">
-            <Text className="text-gray-600">Student? </Text>
-            <TouchableOpacity
-              onPress={() => router.push("/auth/login")}
-              disabled={isLoading}
-            >
-              <Text className="text-blue-500 font-semibold">Student Login</Text>
-            </TouchableOpacity>
-          </View>
+              <Text className="text-4xl font-groteskBold text-black text-center mb-2">
+                College Hub
+              </Text>
+              <Text className="text-neutral-400 font-grotesk text-center text-lg">
+                Teacher Portal
+              </Text>
+            </Animated.View>
 
-          <View className="mt-2 flex-row justify-center">
-            <Text className="text-gray-600">New teacher? </Text>
-            <TouchableOpacity
-              onPress={() => router.push("/auth/teacher/register")}
-              disabled={isLoading}
+            <Animated.View
+              style={{
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              }}
             >
-              <Text className="text-blue-500 font-semibold">Register</Text>
-            </TouchableOpacity>
+              <Card className="bg-white border border-neutral-200 p-6 mb-6">
+                <View className="mb-6">
+                  <Text className="text-2xl font-groteskBold text-black text-center mb-2">
+                    Teacher Login
+                  </Text>
+                  <Text className="text-neutral-400 font-grotesk text-center">
+                    Access your teaching resources
+                  </Text>
+                </View>
+
+                <View className="mb-4">
+                  <Text className="text-black font-groteskBold mb-2">
+                    Email
+                  </Text>
+                  <View className="flex-row items-center bg-neutral-200 rounded-lg px-4 py-3 border border-neutral-200">
+                    <Mail size={20} color="#a3a3a3" />
+                    <TextInput
+                      className="flex-1 ml-3 text-black font-grotesk"
+                      placeholder="Enter your email"
+                      placeholderTextColor="#a3a3a3"
+                      value={email}
+                      onChangeText={(text) => setEmail(text.toLowerCase())}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      autoCorrect={false}
+                      editable={!isLoading}
+                    />
+                  </View>
+                </View>
+
+                <View className="mb-4">
+                  <Text className="text-black font-groteskBold mb-2">
+                    Password
+                  </Text>
+                  <View className="flex-row items-center bg-neutral-200 rounded-lg px-4 py-3 border border-neutral-200">
+                    <Lock size={20} color="#a3a3a3" />
+                    <TextInput
+                      className="flex-1 ml-3 text-black font-grotesk"
+                      placeholder="Enter your password"
+                      placeholderTextColor="#a3a3a3"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                      autoCorrect={false}
+                      editable={!isLoading}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      className="ml-2"
+                    >
+                      {showPassword ? (
+                        <EyeOff size={20} color="#a3a3a3" />
+                      ) : (
+                        <Eye size={20} color="#a3a3a3" />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View className="mb-6">
+                  <Text className="text-black font-groteskBold mb-2">
+                    Teacher Secret Code
+                  </Text>
+                  <View className="flex-row items-center bg-neutral-200 rounded-lg px-4 py-3 border border-neutral-200">
+                    <Lock size={20} color="#a3a3a3" />
+                    <TextInput
+                      className="flex-1 ml-3 text-black font-grotesk"
+                      placeholder="Enter teacher secret code"
+                      placeholderTextColor="#a3a3a3"
+                      value={secretCode}
+                      onChangeText={setSecretCode}
+                      secureTextEntry={!showSecretCode}
+                      autoCorrect={false}
+                      editable={!isLoading}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowSecretCode(!showSecretCode)}
+                      className="ml-2"
+                    >
+                      {showSecretCode ? (
+                        <EyeOff size={20} color="#a3a3a3" />
+                      ) : (
+                        <Eye size={20} color="#a3a3a3" />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <Button
+                  variant="solid"
+                  size="md"
+                  action="primary"
+                  onPress={handleTeacherLogin}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="white" size="small" />
+                  ) : (
+                    <ArrowRight size={20} color="white" />
+                  )}
+                  <ButtonText>
+                    {isLoading
+                      ? isVerifyingCode
+                        ? "Verifying Code..."
+                        : "Signing In..."
+                      : "Teacher Login"}
+                  </ButtonText>
+                </Button>
+              </Card>
+
+              <View className="space-y-4">
+                <TouchableOpacity
+                  onPress={() => router.push("/auth/login")}
+                  disabled={isLoading}
+                  className="bg-white border border-neutral-200 rounded-lg p-4"
+                >
+                  <View className="flex-row items-center justify-center">
+                    <Users size={20} color="#a3a3a3" />
+                    <Text className="text-neutral-400 font-grotesk ml-2 mr-1">
+                      Student?
+                    </Text>
+                    <Text className="text-black font-groteskBold">
+                      Student Login
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <View className="flex-row justify-center items-center">
+                  <Text className="text-neutral-400 font-grotesk">
+                    New teacher?{" "}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => router.push("/auth/teacher/register")}
+                    disabled={isLoading}
+                  >
+                    <Text className="text-black font-groteskBold">
+                      Register Here
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Animated.View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

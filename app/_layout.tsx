@@ -1,5 +1,7 @@
 // app/_layout.tsx
 import { useEffect } from "react";
+import "@/global.css";
+import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Text, View, ActivityIndicator } from "react-native";
@@ -27,31 +29,31 @@ export default function RootLayout() {
 
   if (!fontsLoaded && !fontError) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#3B82F6" />
-      </View>
+      <GluestackUIProvider mode="light"><View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+        </View></GluestackUIProvider>
     );
   }
 
   if (fontError) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>Error loading fonts. Please restart the app.</Text>
-      </View>
+      <GluestackUIProvider mode="light"><View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <Text>Error loading fonts. Please restart the app.</Text>
+        </View></GluestackUIProvider>
     );
   }
 
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <AuthGuard>
-          <StatusBar style="auto" />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="auth" options={{ headerShown: false }} />
-          </Stack>
-        </AuthGuard>
-      </AuthProvider>
-    </SafeAreaProvider>
+    <GluestackUIProvider mode="light"><SafeAreaProvider>
+        <AuthProvider>
+          <AuthGuard>
+            <StatusBar style="auto" />
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="auth" options={{ headerShown: false }} />
+            </Stack>
+          </AuthGuard>
+        </AuthProvider>
+      </SafeAreaProvider></GluestackUIProvider>
   );
 }

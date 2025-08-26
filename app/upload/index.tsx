@@ -1,4 +1,4 @@
-// app/upload/index.tsx
+// app/upload/index.tsx (redesigned)
 import { useState } from "react";
 import {
   View,
@@ -16,7 +16,16 @@ import { databases, APPWRITE_CONFIG, account } from "../../lib/appwrite";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
-import { Upload, File, Image, FileText, X } from "lucide-react-native";
+import {
+  Upload,
+  File,
+  Image,
+  FileText,
+  X,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react-native";
+import { Card } from "@/components/ui/card";
 
 // Document categories
 const CATEGORIES = [
@@ -70,7 +79,7 @@ interface SelectedFile {
 const getAuthToken = async (): Promise<string> => {
   try {
     const session = await account.getSession("current");
-    return session.secret; // This is the API key for authenticated requests
+    return session.secret;
   } catch (error) {
     console.error("Failed to get auth token:", error);
     throw new Error("Authentication required. Please log in again.");
@@ -86,9 +95,6 @@ const uploadWithAuth = async (
     const authToken = await getAuthToken();
     const url = `${APPWRITE_CONFIG.endpoint}/storage/buckets/${bucketId}/files`;
 
-    console.log("Uploading with authentication...");
-
-    // Create FormData properly for React Native
     const formData = new FormData();
     formData.append("fileId", "unique()");
     formData.append("file", fileData);
@@ -99,22 +105,17 @@ const uploadWithAuth = async (
         "X-Appwrite-Project": APPWRITE_CONFIG.projectId,
         "X-Appwrite-Response-Format": "1.4.0",
         "x-sdk-version": "appwrite:react-native:10.0.0",
-        Authorization: `Bearer ${authToken}`, // Add authentication header
+        Authorization: `Bearer ${authToken}`,
       },
       body: formData,
     });
 
-    console.log("Upload response status:", response.status);
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Upload error response:", errorText);
       throw new Error(`Server error: ${response.status} - ${errorText}`);
     }
 
-    const result = await response.json();
-    console.log("Upload successful:", result);
-    return result;
+    return await response.json();
   } catch (error) {
     console.error("Authenticated upload failed:", error);
     throw error;
@@ -129,6 +130,7 @@ export default function UploadScreen() {
   const [formData, setFormData] = useState({
     title: "",
     category: "",
+    subjectName: "", // New field for Subject-Specific
     targetDepartments: [] as string[],
     targetSemesters: [] as string[],
     description: "",
@@ -137,17 +139,27 @@ export default function UploadScreen() {
   // Check if user is teacher
   if (user?.role !== "teacher") {
     return (
-      <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
-        <View className="flex-1 justify-center items-center p-4">
-          <Text className="text-lg text-gray-600 text-center">
-            Access denied. Teacher privileges required to upload files.
-          </Text>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="bg-blue-500 px-6 py-3 rounded-lg mt-4"
-          >
-            <Text className="text-white font-semibold">Go Back</Text>
-          </TouchableOpacity>
+      <SafeAreaView className="flex-1 bg-neutral-200">
+        <View className="flex-1 justify-center items-center px-6">
+          <Card className="bg-white rounded-2xl p-8 border border-neutral-300 w-full">
+            <View className="items-center">
+              <View className="bg-neutral-200 p-4 rounded-full mb-4">
+                <AlertCircle size={32} color="#a3a3a3" />
+              </View>
+              <Text className="text-black font-groteskBold text-xl text-center mb-2">
+                Access Restricted
+              </Text>
+              <Text className="text-neutral-400 font-grotesk text-center mb-6">
+                Teacher privileges required to upload documents
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.back()}
+                className="bg-lime-400 px-8 py-4 rounded-2xl"
+              >
+                <Text className="text-black font-groteskBold">Go Back</Text>
+              </TouchableOpacity>
+            </View>
+          </Card>
         </View>
       </SafeAreaView>
     );
@@ -220,16 +232,37 @@ export default function UploadScreen() {
       return;
     }
 
+    // Additional validation for Subject-Specific category
+    if (formData.category === "Subject-Specific") {
+      if (!formData.subjectName.trim()) {
+        Alert.alert(
+          "Error",
+          "Please enter a subject name for Subject-Specific documents",
+        );
+        return;
+      }
+      if (formData.targetDepartments.length === 0) {
+        Alert.alert(
+          "Error",
+          "Please select at least one target department for Subject-Specific documents",
+        );
+        return;
+      }
+      if (formData.targetSemesters.length === 0) {
+        Alert.alert(
+          "Error",
+          "Please select at least one target semester for Subject-Specific documents",
+        );
+        return;
+      }
+    }
+
     setIsUploading(true);
 
     try {
-      console.log("Starting authenticated file upload...");
-
-      // Generate unique filename
       const fileExtension = selectedFile.name.split(".").pop() || "";
       const uniqueFileName = `${Date.now()}_${formData.title.replace(/\s+/g, "_")}.${fileExtension}`;
 
-      // Get file type
       let fileType = selectedFile.mimeType || "application/octet-stream";
       if (!selectedFile.mimeType) {
         const match = /\.(\w+)$/.exec(selectedFile.name);
@@ -243,40 +276,34 @@ export default function UploadScreen() {
         }
       }
 
-      // Create file object for FormData
       const fileData = {
         uri: selectedFile.uri,
         name: uniqueFileName,
         type: fileType,
       };
 
-      console.log("Uploading file:", fileData);
-
-      // Try authenticated upload first
       const storageResponse = await uploadWithAuth(
         fileData,
         APPWRITE_CONFIG.bucketId,
       );
 
-      console.log("File uploaded successfully:", storageResponse);
-
-      // Get file URL
       const fileUrl = `${APPWRITE_CONFIG.endpoint}/storage/buckets/${APPWRITE_CONFIG.bucketId}/files/${storageResponse.$id}/view?project=${APPWRITE_CONFIG.projectId}`;
 
-      console.log("File URL:", fileUrl);
-
-      // Create document record in database
+      // Create document record with subjectName if applicable
       const documentData = {
         title: formData.title.trim(),
         fileUrl,
         category: formData.category,
+        subjectName:
+          formData.category === "Subject-Specific"
+            ? formData.subjectName.trim()
+            : undefined,
         targetDepartments: formData.targetDepartments,
         targetSemesters: formData.targetSemesters,
         uploadedBy: user.$id,
         createdAt: new Date().toISOString(),
       };
 
-      console.log("Creating document record...");
       await databases.createDocument(
         APPWRITE_CONFIG.databaseId,
         APPWRITE_CONFIG.collections.documents,
@@ -284,13 +311,12 @@ export default function UploadScreen() {
         documentData,
       );
 
-      console.log("Document record created successfully");
-
       // Reset form after successful upload
       setSelectedFile(null);
       setFormData({
         title: "",
         category: "",
+        subjectName: "",
         targetDepartments: [],
         targetSemesters: [],
         description: "",
@@ -304,7 +330,6 @@ export default function UploadScreen() {
       ]);
     } catch (error: any) {
       console.error("Upload error details:", error);
-
       let errorMessage = "Failed to upload file. ";
 
       if (error.message.includes("Authentication")) {
@@ -328,12 +353,8 @@ export default function UploadScreen() {
     }
   };
 
-  // Test connection function
   const testConnection = async () => {
     try {
-      console.log("Testing connection to Appwrite server...");
-
-      // Test with authentication
       const authToken = await getAuthToken();
       const testUrl = `${APPWRITE_CONFIG.endpoint}/storage/buckets/${APPWRITE_CONFIG.bucketId}/files`;
 
@@ -344,8 +365,6 @@ export default function UploadScreen() {
           Authorization: `Bearer ${authToken}`,
         },
       });
-
-      console.log("Authenticated test status:", response.status);
 
       if (response.status === 200) {
         Alert.alert(
@@ -362,7 +381,7 @@ export default function UploadScreen() {
       console.error("Connection test failed:", error);
       Alert.alert(
         "Connection Test Failed",
-        `Authentication error: ${error.message}\n\nPlease make sure you're logged in and have upload permissions.`,
+        `Authentication error: ${error.message}`,
       );
     }
   };
@@ -389,217 +408,280 @@ export default function UploadScreen() {
     setSelectedFile(null);
   };
 
+  const isSubjectSpecific = formData.category === "Subject-Specific";
+
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
-      <ScrollView className="flex-1 bg-gray-50 p-4">
-        <View className="flex-row items-center justify-between mb-6">
-          <Text className="text-2xl font-bold text-gray-900">
+    <SafeAreaView className="flex-1 bg-neutral-200">
+      {/* Header */}
+      <View className="px-6 py-4">
+        <View className="flex-row items-center justify-between">
+          <Text className="text-black font-groteskBold text-2xl">
             Upload Document
           </Text>
-          <TouchableOpacity onPress={() => router.back()} className="p-2">
-            <X size={24} color="#6B7280" />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="bg-white p-3 rounded-full border border-neutral-300"
+          >
+            <X size={20} color="#000" />
+          </TouchableOpacity>
+        </View>
+        <Text className="text-neutral-400 font-grotesk mt-2">
+          Share documents with your students
+        </Text>
+      </View>
+
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
+        {/* Connection Test Button */}
+        <View className="px-6 mb-6">
+          <TouchableOpacity
+            onPress={testConnection}
+            className="bg-white border border-neutral-300 p-4 rounded-2xl items-center justify-center"
+          >
+            <Text className="text-black font-grotesk">
+              Test Server Connection
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Connection Test Button */}
-        <TouchableOpacity
-          onPress={testConnection}
-          className="bg-gray-500 p-3 rounded-lg items-center justify-center mb-6"
-        >
-          <Text className="text-white font-semibold">
-            Test Server Connection
-          </Text>
-        </TouchableOpacity>
-
         {/* File Selection */}
-        <View className="bg-white rounded-lg p-6 shadow-sm mb-6">
-          <Text className="text-lg font-semibold text-gray-800 mb-4">
-            Select File
-          </Text>
+        <View className="px-6 mb-6">
+          <Card className="bg-white rounded-2xl p-6 border border-neutral-300">
+            <Text className="text-black font-groteskBold text-lg mb-4">
+              Select File
+            </Text>
 
-          {selectedFile ? (
-            <View className="border border-green-500 rounded-lg p-4 bg-green-50 mb-4">
-              <View className="flex-row items-center">
-                <FileText size={24} color="#10B981" />
-                <View className="ml-3 flex-1">
-                  <Text className="font-medium text-green-800">
-                    {selectedFile.name}
-                  </Text>
-                  {selectedFile.size && (
-                    <Text className="text-sm text-green-600">
-                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+            {selectedFile ? (
+              <View className="border-2 border-lime-400 rounded-2xl p-4 bg-lime-50 mb-4">
+                <View className="flex-row items-center">
+                  <View className="bg-lime-400 p-2 rounded-full">
+                    <CheckCircle size={20} color="black" />
+                  </View>
+                  <View className="ml-3 flex-1">
+                    <Text className="font-groteskBold text-black">
+                      {selectedFile.name}
                     </Text>
-                  )}
-                  {selectedFile.mimeType && (
-                    <Text className="text-xs text-green-500">
-                      {selectedFile.mimeType}
-                    </Text>
-                  )}
+                    {selectedFile.size && (
+                      <Text className="text-neutral-400 font-grotesk text-sm">
+                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                      </Text>
+                    )}
+                    {selectedFile.mimeType && (
+                      <Text className="text-neutral-400 font-grotesk text-xs">
+                        {selectedFile.mimeType}
+                      </Text>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    onPress={removeFile}
+                    disabled={isUploading}
+                    className="bg-neutral-200 p-2 rounded-full"
+                  >
+                    <X size={16} color="#a3a3a3" />
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={removeFile} disabled={isUploading}>
-                  <X size={20} color="#EF4444" />
+              </View>
+            ) : (
+              <View className="flex-row space-x-4">
+                <TouchableOpacity
+                  onPress={pickDocument}
+                  className="flex-1 bg-neutral-200 p-6 rounded-2xl items-center border border-neutral-300"
+                  disabled={isUploading}
+                >
+                  <View className="bg-black p-3 rounded-full mb-3">
+                    <File size={24} color="white" />
+                  </View>
+                  <Text className="text-black font-groteskBold">Document</Text>
+                  <Text className="text-neutral-400 font-grotesk text-xs text-center mt-1">
+                    PDF, DOC, TXT
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={pickImage}
+                  className="flex-1 bg-neutral-200 p-6 rounded-2xl items-center border border-neutral-300"
+                  disabled={isUploading}
+                >
+                  <View className="bg-black p-3 rounded-full mb-3">
+                    <Image size={24} color="white" />
+                  </View>
+                  <Text className="text-black font-groteskBold">Image</Text>
+                  <Text className="text-neutral-400 font-grotesk text-xs text-center mt-1">
+                    JPG, PNG, etc.
+                  </Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          ) : (
-            <View className="flex-row space-x-4">
-              <TouchableOpacity
-                onPress={pickDocument}
-                className="flex-1 bg-blue-100 p-4 rounded-lg items-center"
-                disabled={isUploading}
-              >
-                <File size={24} color="#3B82F6" />
-                <Text className="text-blue-700 font-medium mt-2">Document</Text>
-                <Text className="text-xs text-blue-600 text-center mt-1">
-                  PDF, DOC, TXT
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={pickImage}
-                className="flex-1 bg-green-100 p-4 rounded-lg items-center"
-                disabled={isUploading}
-              >
-                <Image size={24} color="#10B981" />
-                <Text className="text-green-700 font-medium mt-2">Image</Text>
-                <Text className="text-xs text-green-600 text-center mt-1">
-                  JPG, PNG, etc.
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+            )}
+          </Card>
         </View>
 
         {/* Document Details Form */}
-        <View className="bg-white rounded-lg p-6 shadow-sm mb-6">
-          <Text className="text-lg font-semibold text-gray-800 mb-4">
-            Document Details
-          </Text>
+        <View className="px-6 mb-6">
+          <Card className="bg-white rounded-2xl p-6 border border-neutral-300">
+            <Text className="text-black font-groteskBold text-lg mb-6">
+              Document Details
+            </Text>
 
-          <TextInput
-            className="border border-gray-300 rounded-lg p-4 mb-4"
-            placeholder="Document Title *"
-            value={formData.title}
-            onChangeText={(text) => setFormData({ ...formData, title: text })}
-            editable={!isUploading}
-          />
-
-          <View className="mb-4">
-            <Text className="text-sm text-gray-600 mb-2">Category *</Text>
-            <View className="border border-gray-300 rounded-lg">
-              <Picker
-                selectedValue={formData.category}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, category: value })
+            <View className="mb-6">
+              <Text className="text-black font-grotesk mb-2">Title *</Text>
+              <TextInput
+                className="border border-neutral-300 rounded-2xl p-4 font-grotesk text-black"
+                placeholder="Enter document title"
+                placeholderTextColor="#a3a3a3"
+                value={formData.title}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, title: text })
                 }
-                enabled={!isUploading}
-              >
-                <Picker.Item label="Select Category" value="" />
-                {CATEGORIES.map((category) => (
-                  <Picker.Item
-                    key={category}
-                    label={category}
-                    value={category}
-                  />
+                editable={!isUploading}
+              />
+            </View>
+
+            <View className="mb-6">
+              <Text className="text-black font-grotesk mb-2">Category *</Text>
+              <View className="border border-neutral-300 rounded-2xl">
+                <Picker
+                  selectedValue={formData.category}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, category: value })
+                  }
+                  enabled={!isUploading}
+                  style={{ color: "#000" }}
+                >
+                  <Picker.Item label="Select Category" value="" />
+                  {CATEGORIES.map((category) => (
+                    <Picker.Item
+                      key={category}
+                      label={category}
+                      value={category}
+                    />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+
+            {/* Subject Name Field (only for Subject-Specific) */}
+            {isSubjectSpecific && (
+              <View className="mb-6">
+                <Text className="text-black font-grotesk mb-2">
+                  Subject Name *
+                </Text>
+                <TextInput
+                  className="border border-neutral-300 rounded-2xl p-4 font-grotesk text-black"
+                  placeholder="Enter subject name"
+                  placeholderTextColor="#a3a3a3"
+                  value={formData.subjectName}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, subjectName: text })
+                  }
+                  editable={!isUploading}
+                />
+              </View>
+            )}
+
+            <View className="mb-6">
+              <Text className="text-black font-grotesk mb-2">Description</Text>
+              <TextInput
+                className="border border-neutral-300 rounded-2xl p-4 h-24 font-grotesk text-black"
+                placeholder="Enter description (optional)"
+                placeholderTextColor="#a3a3a3"
+                value={formData.description}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, description: text })
+                }
+                multiline
+                textAlignVertical="top"
+                editable={!isUploading}
+              />
+            </View>
+
+            {/* Target Departments */}
+            <View className="mb-6">
+              <Text className="text-black font-grotesk mb-3">
+                Target Departments {isSubjectSpecific ? "*" : "(Optional)"}
+              </Text>
+              <View className="flex-row flex-wrap">
+                {DEPARTMENT_OPTIONS.map((department) => (
+                  <TouchableOpacity
+                    key={department}
+                    onPress={() => toggleDepartment(department)}
+                    disabled={isUploading}
+                    className={`mr-2 mb-2 px-4 py-2 rounded-full border ${formData.targetDepartments.includes(department)
+                        ? "bg-lime-400 border-lime-400"
+                        : "bg-neutral-200 border-neutral-300"
+                      }`}
+                  >
+                    <Text
+                      className={`font-grotesk text-sm ${formData.targetDepartments.includes(department)
+                          ? "text-black"
+                          : "text-neutral-400"
+                        }`}
+                    >
+                      {department}
+                    </Text>
+                  </TouchableOpacity>
                 ))}
-              </Picker>
+              </View>
             </View>
-          </View>
 
-          <TextInput
-            className="border border-gray-300 rounded-lg p-4 mb-4 h-20"
-            placeholder="Description (Optional)"
-            value={formData.description}
-            onChangeText={(text) =>
-              setFormData({ ...formData, description: text })
-            }
-            multiline
-            textAlignVertical="top"
-            editable={!isUploading}
-          />
-
-          {/* Target Departments */}
-          <View className="mb-4">
-            <Text className="text-sm text-gray-600 mb-2">
-              Target Departments (Optional)
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {DEPARTMENT_OPTIONS.map((department) => (
-                <TouchableOpacity
-                  key={department}
-                  onPress={() => toggleDepartment(department)}
-                  disabled={isUploading}
-                  className={`px-3 py-2 rounded-full ${formData.targetDepartments.includes(department)
-                      ? "bg-blue-500"
-                      : "bg-gray-200"
-                    }`}
-                >
-                  <Text
-                    className={`text-sm ${formData.targetDepartments.includes(department)
-                        ? "text-white"
-                        : "text-gray-700"
+            {/* Target Semesters */}
+            <View className="mb-6">
+              <Text className="text-black font-grotesk mb-3">
+                Target Semesters {isSubjectSpecific ? "*" : "(Optional)"}
+              </Text>
+              <View className="flex-row flex-wrap">
+                {SEMESTER_OPTIONS.map((semester) => (
+                  <TouchableOpacity
+                    key={semester}
+                    onPress={() => toggleSemester(semester)}
+                    disabled={isUploading}
+                    className={`mr-2 mb-2 px-4 py-2 rounded-full border ${formData.targetSemesters.includes(semester)
+                        ? "bg-lime-400 border-lime-400"
+                        : "bg-neutral-200 border-neutral-300"
                       }`}
                   >
-                    {department}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      className={`font-grotesk text-sm ${formData.targetSemesters.includes(semester)
+                          ? "text-black"
+                          : "text-neutral-400"
+                        }`}
+                    >
+                      {semester}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          </View>
-
-          {/* Target Semesters */}
-          <View className="mb-4">
-            <Text className="text-sm text-gray-600 mb-2">
-              Target Semesters (Optional)
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {SEMESTER_OPTIONS.map((semester) => (
-                <TouchableOpacity
-                  key={semester}
-                  onPress={() => toggleSemester(semester)}
-                  disabled={isUploading}
-                  className={`px-3 py-2 rounded-full ${formData.targetSemesters.includes(semester)
-                      ? "bg-green-500"
-                      : "bg-gray-200"
-                    }`}
-                >
-                  <Text
-                    className={`text-sm ${formData.targetSemesters.includes(semester)
-                        ? "text-white"
-                        : "text-gray-700"
-                      }`}
-                  >
-                    {semester}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+          </Card>
         </View>
 
         {/* Upload Button */}
-        <TouchableOpacity
-          onPress={uploadFile}
-          disabled={isUploading || !selectedFile}
-          className="bg-blue-500 p-4 rounded-lg items-center justify-center mb-6"
-          style={{ opacity: isUploading || !selectedFile ? 0.7 : 1 }}
-        >
-          {isUploading ? (
-            <View className="flex-row items-center">
-              <ActivityIndicator color="white" size="small" />
-              <Text className="text-white font-semibold ml-2">
-                Uploading...
-              </Text>
-            </View>
-          ) : (
-            <View className="flex-row items-center">
-              <Upload size={20} color="white" />
-              <Text className="text-white font-semibold ml-2">
-                Upload Document
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <View className="px-6">
+          <TouchableOpacity
+            onPress={uploadFile}
+            disabled={isUploading || !selectedFile}
+            className={`p-6 rounded-2xl items-center justify-center ${isUploading || !selectedFile ? "bg-neutral-300" : "bg-lime-400"
+              }`}
+          >
+            {isUploading ? (
+              <View className="flex-row items-center">
+                <ActivityIndicator color="black" size="small" />
+                <Text className="text-black font-groteskBold ml-3">
+                  Uploading...
+                </Text>
+              </View>
+            ) : (
+              <View className="flex-row items-center">
+                <Upload size={20} color="black" />
+                <Text className="text-black font-groteskBold ml-3">
+                  Upload Document
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
