@@ -2,11 +2,12 @@
 import { Tabs } from "expo-router";
 import {
   Home,
-  BookOpen,
-  Briefcase,
-  Building2,
+  BookA,
+  BriefcaseBusiness,
   User,
   Plus,
+  GraduationCap,
+  School,
 } from "lucide-react-native";
 import { useAuth } from "../../context/AuthContext";
 import { View } from "react-native";
@@ -55,9 +56,7 @@ export default function TabLayout() {
           name="academics"
           options={{
             title: "Academics",
-            tabBarIcon: ({ color, size }) => (
-              <BookOpen size={22} color={color} />
-            ),
+            tabBarIcon: ({ color, size }) => <BookA size={22} color={color} />,
           }}
         />
         <Tabs.Screen
@@ -65,7 +64,7 @@ export default function TabLayout() {
           options={{
             title: user?.department?.split(" ")[0] || "Dept", // Show first word of department
             tabBarIcon: ({ color, size }) => (
-              <Building2 size={22} color={color} />
+              <GraduationCap size={22} color={color} />
             ),
           }}
         />
@@ -74,7 +73,7 @@ export default function TabLayout() {
           options={{
             title: "Opportunities",
             tabBarIcon: ({ color, size }) => (
-              <Briefcase size={22} color={color} />
+              <BriefcaseBusiness size={22} color={color} />
             ),
           }}
         />
