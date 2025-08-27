@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Platform
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -25,6 +26,9 @@ import { TextInput } from "../../components/TextInput";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { useAuth } from "../../context/AuthContext";
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import * as MediaLibrary from 'expo-media-library';
 
 interface Document {
   $id: string;
@@ -57,6 +61,7 @@ export default function DepartmentScreen() {
   const [subjectGroups, setSubjectGroups] = useState<SubjectGroup[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [showFilters, setShowFilters] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
     loadDocuments();
@@ -176,26 +181,208 @@ export default function DepartmentScreen() {
     return hasDepartmentAccess && hasSemesterAccess;
   };
 
+  // Main download handler function
   const handleDownload = async (document: Document) => {
     try {
-      Alert.alert("Download", `Would you like to download ${document.title}?`, [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Download",
-          onPress: () => {
-            console.log("Downloading:", document.fileUrl);
+      // Request media library permissions for saving to device
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please grant media library permissions to download files.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      Alert.alert(
+        'Download',
+        `Download ${document.title}?`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
           },
-        },
-      ]);
+          {
+            text: 'Download',
+            onPress: () => downloadFile(document),
+          },
+        ]
+      );
     } catch (error) {
-      console.error("Download error:", error);
-      Alert.alert("Error", "Failed to download file");
+      console.error('Permission error:', error);
+      Alert.alert('Error', 'Failed to request permissions');
     }
   };
 
+  // Core download function
+  const downloadFile = async (document: Document) => {
+    try {
+      // Create a unique filename with timestamp to avoid conflicts
+      const timestamp = new Date().getTime();
+      const fileExtension = getFileExtension(document.fileName);
+      const fileName = `${document.title.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}${fileExtension}`;
+
+      // Define download path
+      const downloadPath = `${FileSystem.documentDirectory}${fileName}`;
+
+      // Show loading alert
+      Alert.alert('Downloading', `Downloading ${document.title}...`);
+
+      // Create download resumable for better control and progress tracking
+      const downloadResumable = FileSystem.createDownloadResumable(
+        document.fileUrl,
+        downloadPath,
+        {},
+        (downloadProgress) => {
+          const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
+          setDownloadProgress(prev => ({
+            ...prev,
+            [document.$id]: Math.round(progress * 100)
+          }));
+        }
+      );
+
+      // Start download
+      const result = await downloadResumable.downloadAsync();
+
+      if (result && result.uri) {
+        // Clear progress
+        setDownloadProgress(prev => {
+          const newProgress = { ...prev };
+          delete newProgress[document.$id];
+          return newProgress;
+        });
+
+        // Handle successful download
+        await handleDownloadSuccess(result.uri, document, fileName);
+      } else {
+        throw new Error('Download failed - no result URI');
+      }
+
+    } catch (error) {
+      // Clear progress on error
+      setDownloadProgress(prev => {
+        const newProgress = { ...prev };
+        delete newProgress[document.$id];
+        return newProgress;
+      });
+
+      console.error('Download error:', error);
+      Alert.alert(
+        'Download Failed',
+        'Failed to download the file. Please check your internet connection and try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  // Handle successful download
+  const handleDownloadSuccess = async (fileUri: string, document: Document, fileName: string) => {
+    try {
+      if (Platform.OS === 'ios') {
+        // On iOS, use sharing
+        if (await Sharing.isAvailableAsync()) {
+          Alert.alert(
+            'Download Complete',
+            `${document.title} has been downloaded successfully!`,
+            [
+              {
+                text: 'Share',
+                onPress: () => Sharing.shareAsync(fileUri),
+              },
+              {
+                text: 'OK',
+                style: 'default',
+              },
+            ]
+          );
+        } else {
+          Alert.alert('Download Complete', `File saved to: ${fileName}`);
+        }
+      } else {
+        // On Android, save to media library and offer sharing
+        try {
+          const asset = await MediaLibrary.createAssetAsync(fileUri);
+          await MediaLibrary.createAlbumAsync('Downloads', asset, false);
+
+          Alert.alert(
+            'Download Complete',
+            `${document.title} has been saved to your device!`,
+            [
+              {
+                text: 'Share',
+                onPress: () => Sharing.shareAsync(fileUri),
+              },
+              {
+                text: 'OK',
+                style: 'default',
+              },
+            ]
+          );
+        } catch (mediaError) {
+          console.error('Media library error:', mediaError);
+          // Fallback to sharing if media library fails
+          if (await Sharing.isAvailableAsync()) {
+            Alert.alert(
+              'Download Complete',
+              'File downloaded! You can share it now.',
+              [
+                {
+                  text: 'Share',
+                  onPress: () => Sharing.shareAsync(fileUri),
+                },
+                {
+                  text: 'OK',
+                  style: 'default',
+                },
+              ]
+            );
+          } else {
+            Alert.alert('Download Complete', 'File has been downloaded successfully!');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Post-download handling error:', error);
+      Alert.alert('Download Complete', 'File downloaded, but sharing is not available.');
+    }
+  };
+
+  // Helper function to extract file extension
+  const getFileExtension = (fileName: string): string => {
+    const lastDotIndex = fileName.lastIndexOf('.');
+    return lastDotIndex !== -1 ? fileName.substring(lastDotIndex) : '';
+  };
+
+  // Optional: Function to check available storage space
+  const checkStorageSpace = async (): Promise<boolean> => {
+    try {
+      const freeDiskStorage = await FileSystem.getFreeDiskStorageAsync();
+      // Check if there's at least 50MB free space
+      return freeDiskStorage > 50 * 1024 * 1024;
+    } catch (error) {
+      console.error('Storage check error:', error);
+      return true; // Assume there's space if we can't check
+    }
+  };
+
+  // Enhanced download with storage check
+  const downloadFileWithStorageCheck = async (document: Document) => {
+    const hasSpace = await checkStorageSpace();
+
+    if (!hasSpace) {
+      Alert.alert(
+        'Insufficient Storage',
+        'Not enough storage space available. Please free up some space and try again.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    await downloadFile(document);
+  };
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 B";
     const k = 1024;
@@ -212,51 +399,83 @@ export default function DepartmentScreen() {
     });
   };
 
-  const renderDocumentCard = (item: Document, isCompact: boolean = false) => (
-    <Card key={item.$id} className="bg-white border border-neutral-200 mb-3 p-4">
-      <View className="flex-row justify-between items-start mb-3">
-        <View className="flex-1 mr-3">
-          <Text className={`text-black ${isCompact ? 'text-base font-grotesk' : 'text-lg font-groteskBold'} mb-1`}>
-            {item.title}
-          </Text>
-          {item.description && (
-            <Text className="text-neutral-400 text-sm font-grotesk mb-2">
-              {item.description}
-            </Text>
-          )}
-        </View>
-        <Button
-          onPress={() => handleDownload(item)}
-          className="bg-lime-400 p-3 rounded-lg min-w-0"
-        >
-          <Download size={18} color="black" />
-        </Button>
-      </View>
 
-      <View className="flex-row justify-between items-center">
-        <View className="flex-1">
-          <View className="flex-row items-center mb-1">
-            <FileText size={12} color="#a3a3a3" />
-            <Text className="text-neutral-400 text-xs font-grotesk ml-1 flex-1" numberOfLines={1}>
-              {item.fileName}
+  const renderDocumentCard = (item: Document, isCompact: boolean = false) => {
+    const progress = downloadProgress[item.$id];
+    const isDownloading = progress !== undefined;
+
+    return (
+      <Card key={item.$id} className="bg-white border border-neutral-200 mb-3 p-4">
+        <View className="flex-row justify-between items-start mb-3">
+          <View className="flex-1 mr-3">
+            <Text className={`text-black ${isCompact ? 'text-base font-grotesk' : 'text-lg font-groteskBold'} mb-1`}>
+              {item.title}
+            </Text>
+            {item.description && (
+              <Text className="text-neutral-400 text-sm font-grotesk mb-2">
+                {item.description}
+              </Text>
+            )}
+
+            {/* Download Progress Bar */}
+            {isDownloading && (
+              <View className="mt-2">
+                <View className="flex-row justify-between items-center mb-1">
+                  <Text className="text-lime-400 text-xs font-grotesk">
+                    Downloading...
+                  </Text>
+                  <Text className="text-lime-400 text-xs font-groteskBold">
+                    {progress}%
+                  </Text>
+                </View>
+                <View className="h-1 bg-neutral-200 rounded-full overflow-hidden">
+                  <View
+                    className="h-full bg-lime-400 transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </View>
+              </View>
+            )}
+          </View>
+
+          <Button
+            onPress={() => isDownloading ? null : handleDownload(item)}
+            className={`${isDownloading ? 'bg-neutral-300' : 'bg-lime-400'} p-3 rounded-lg min-w-0`}
+            disabled={isDownloading}
+          >
+            {isDownloading ? (
+              <ActivityIndicator size={18} color="#a3a3a3" />
+            ) : (
+              <Download size={18} color="black" />
+            )}
+          </Button>
+        </View>
+
+        <View className="flex-row justify-between items-center">
+          <View className="flex-1">
+            <View className="flex-row items-center mb-1">
+              <FileText size={12} color="#a3a3a3" />
+              <Text className="text-neutral-400 text-xs font-grotesk ml-1 flex-1" numberOfLines={1}>
+                {item.fileName}
+              </Text>
+            </View>
+            <Text className="text-neutral-400 text-xs font-grotesk">
+              {formatFileSize(item.fileSize)}
             </Text>
           </View>
-          <Text className="text-neutral-400 text-xs font-grotesk">
-            {formatFileSize(item.fileSize)}
-          </Text>
-        </View>
 
-        <View className="items-end">
-          <View className="flex-row items-center">
-            <Calendar size={12} color="#a3a3a3" />
-            <Text className="text-neutral-400 text-xs font-grotesk ml-1">
-              {formatDate(item.createdAt)}
-            </Text>
+          <View className="items-end">
+            <View className="flex-row items-center">
+              <Calendar size={12} color="#a3a3a3" />
+              <Text className="text-neutral-400 text-xs font-grotesk ml-1">
+                {formatDate(item.createdAt)}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-    </Card>
-  );
+      </Card>
+    );
+  };
 
   const renderSubjectSection = (subject: SubjectGroup) => (
     <View key={subject.subjectName} className="mb-6">
