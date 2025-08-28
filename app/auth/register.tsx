@@ -26,6 +26,7 @@ import {
 } from "lucide-react-native";
 import { Card } from "../../components/ui/card";
 import { Button, ButtonText } from "../../components/ui/button";
+import { Image } from "react-native";
 
 export default function RegisterScreen() {
   const [formData, setFormData] = useState({
@@ -40,6 +41,7 @@ export default function RegisterScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
   const { register } = useAuth();
+  const logoImage = require('@/assets/logo.png')
 
   React.useEffect(() => {
     Animated.parallel([
@@ -140,8 +142,9 @@ export default function RegisterScreen() {
               className="items-center mb-8"
             >
               {/* Logo/Icon */}
-              <View className="bg-lime-400 rounded-full p-6 mb-6">
-                <UserPlus size={48} color="black" />
+              <View className="bg-white rounded-full p-6 mb-6">
+                {/* <UserPlus size={48} color="black" /> */}
+                <Image source={logoImage} style={{ width: 100, height: 100 }} />
               </View>
 
               {/* Title */}

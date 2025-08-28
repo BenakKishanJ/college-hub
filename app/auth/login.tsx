@@ -26,6 +26,7 @@ import {
 } from "lucide-react-native";
 import { Card } from "../../components/ui/card";
 import { Button, ButtonText } from "../../components/ui/button";
+import { Image } from "react-native";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -37,6 +38,7 @@ export default function LoginScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
   const { login } = useAuth();
+  const logoImage = require('@/assets/logo.png')
 
   React.useEffect(() => {
     Animated.parallel([
@@ -92,8 +94,9 @@ export default function LoginScreen() {
               className="items-center mb-12"
             >
               {/* Logo/Icon */}
-              <View className="bg-lime-400 rounded-full p-6 mb-6">
-                <GraduationCap size={48} color="black" />
+              <View className="bg-white rounded-full p-6 mb-6">
+                {/* <GraduationCap size={48} color="black" /> */}
+                <Image source={logoImage} style={{ width: 100, height: 100 }} />
               </View>
 
               {/* App Title */}
