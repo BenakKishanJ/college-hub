@@ -26,6 +26,8 @@ import {
   AlertCircle,
 } from "lucide-react-native";
 import { Card } from "@/components/ui/card";
+import { notifyNewDocumentUpload, notifyDepartmentCircular } from "../../utils/notificationUtils";
+import { useNotificationContext } from "@/context/NotificaitonContext";
 
 // Document categories
 const CATEGORIES = [
@@ -124,6 +126,7 @@ const uploadWithAuth = async (
 
 export default function UploadScreen() {
   const { user } = useAuth();
+  const { expoPushToken } = useNotificationContext();
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
 
@@ -311,12 +314,27 @@ export default function UploadScreen() {
         fileSize: selectedFile.size || 0,
       };
 
-      await databases.createDocument(
+      const createdDocument = await databases.createDocument(
         APPWRITE_CONFIG.databaseId,
         APPWRITE_CONFIG.collections.documents,
         "unique()",
         documentData,
       );
+
+      // SEND NOTIFICATIONS AFTER SUCCESSFUL UPLOAD
+      try {
+        if (formData.category === "Department Circulars" && formData.targetDepartments.length === 1) {
+          // Send department-specific circular notification
+          await notifyDepartmentCircular(createdDocument, formData.targetDepartments[0]);
+        } else {
+          // Send general new document notification
+          await notifyNewDocumentUpload(createdDocument);
+        }
+        console.log('Notification sent successfully for:', createdDocument.title);
+      } catch (notificationError) {
+        console.error('Failed to send notification:', notificationError);
+        // Don't fail the upload if notification fails
+      }
 
       // Reset form after successful upload
       setSelectedFile(null);
@@ -614,14 +632,14 @@ export default function UploadScreen() {
                     onPress={() => toggleDepartment(department)}
                     disabled={isUploading}
                     className={`mr-2 mb-2 px-4 py-2 rounded-full border ${formData.targetDepartments.includes(department)
-                        ? "bg-lime-400 border-lime-400"
-                        : "bg-neutral-200 border-neutral-300"
+                      ? "bg-lime-400 border-lime-400"
+                      : "bg-neutral-200 border-neutral-300"
                       }`}
                   >
                     <Text
                       className={`font-grotesk text-sm ${formData.targetDepartments.includes(department)
-                          ? "text-black"
-                          : "text-neutral-400"
+                        ? "text-black"
+                        : "text-neutral-400"
                         }`}
                     >
                       {department}
@@ -643,14 +661,14 @@ export default function UploadScreen() {
                     onPress={() => toggleSemester(semester)}
                     disabled={isUploading}
                     className={`mr-2 mb-2 px-4 py-2 rounded-full border ${formData.targetSemesters.includes(semester)
-                        ? "bg-lime-400 border-lime-400"
-                        : "bg-neutral-200 border-neutral-300"
+                      ? "bg-lime-400 border-lime-400"
+                      : "bg-neutral-200 border-neutral-300"
                       }`}
                   >
                     <Text
                       className={`font-grotesk text-sm ${formData.targetSemesters.includes(semester)
-                          ? "text-black"
-                          : "text-neutral-400"
+                        ? "text-black"
+                        : "text-neutral-400"
                         }`}
                     >
                       {semester}

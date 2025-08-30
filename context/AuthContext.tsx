@@ -11,6 +11,7 @@ interface User extends Models.Document {
   profileComplete: boolean;
   email: string;
   role: string;
+  pushToken: string;
 }
 
 interface AuthContextType {
