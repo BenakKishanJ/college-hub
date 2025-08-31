@@ -94,9 +94,9 @@ export default function LoginScreen() {
               className="items-center mb-12"
             >
               {/* Logo/Icon */}
-              <View className="bg-white rounded-full p-6 mb-6">
+              <View className="bg-white rounded-full p-4 mb-6 overflow-hidden">
                 {/* <GraduationCap size={48} color="black" /> */}
-                <Image source={logoImage} style={{ width: 100, height: 100 }} />
+                <Image source={logoImage} style={{ width: 120, height: 120 }} />
               </View>
 
               {/* App Title */}
