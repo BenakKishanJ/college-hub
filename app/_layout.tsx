@@ -1,6 +1,5 @@
 // app/_layout.tsx
 import { useEffect } from "react";
-import "@/global.css";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -12,8 +11,8 @@ import { Stack } from "expo-router";
 import { AuthGuard } from "../components/AuthGuard";
 import { NotificationProvider } from '@/context/NotificaitonContext';
 import { useNotifications } from '../hooks/useNotifications'; // ADD THIS IMPORT
-import "../global.css";
 import { useAuth } from '../context/AuthContext';
+import "@/global.css";
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
