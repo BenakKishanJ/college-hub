@@ -66,10 +66,10 @@ export default function RootLayout() {
   return (
     <GluestackUIProvider mode="light">
       <SafeAreaProvider>
-        <AuthProvider>
-          <NotificationProvider>
+        <NotificationProvider>
+          <AuthProvider>
             <AuthGuard>
-              <NotificationInitializer /> {/* ADD THIS COMPONENT */}
+              <NotificationInitializer />
               <StatusBar style="auto" />
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -77,8 +77,8 @@ export default function RootLayout() {
                 <Stack.Screen name="notifications" options={{ headerShown: false }} />
               </Stack>
             </AuthGuard>
-          </NotificationProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </NotificationProvider>
       </SafeAreaProvider>
     </GluestackUIProvider>
   );

@@ -30,9 +30,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#f5f5f5",
-        }}
-      >
+          backgroundColor: "#f5f5f5"
+        }}>
         <ActivityIndicator size="large" color="#3B82F6" />
         <Text style={{ marginTop: 16, fontSize: 16, color: "#666" }}>
           Loading...
@@ -42,5 +41,5 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   // Wrap children in a View to avoid fragment issues
-  return <View style={{ flex: 1 }}>{children}</View>;
+  return (<View style={{ flex: 1 }}>{children}</View>);
 }

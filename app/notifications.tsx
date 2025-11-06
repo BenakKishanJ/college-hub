@@ -213,7 +213,8 @@ export default function NotificationsScreen() {
                       {notification.targetDepartments?.join(', ')}
                     </Text>
                   </View>
-                )}              </View>
+                )}
+              </View>
             </View>
           </View>
           <View className="items-center">
