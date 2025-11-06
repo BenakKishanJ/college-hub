@@ -17,8 +17,8 @@ import {
   Calendar,
   Building2,
   BookOpen,
-  Filter,
   SortAsc,
+  SortDesc,
 } from "lucide-react-native";
 import { databases, APPWRITE_CONFIG } from "../../lib/appwrite";
 import { Query } from "appwrite";
@@ -50,7 +50,7 @@ interface SubjectGroup {
   data: Document[];
 }
 
-type SortOption = "newest" | "oldest" | "title" | "size";
+type SortOption = "newest" | "oldest";
 
 export default function DepartmentScreen() {
   const { user } = useAuth();
@@ -60,7 +60,6 @@ export default function DepartmentScreen() {
   const [departmentCirculars, setDepartmentCirculars] = useState<Document[]>([]);
   const [subjectGroups, setSubjectGroups] = useState<SubjectGroup[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
-  const [showFilters, setShowFilters] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
@@ -98,17 +97,10 @@ export default function DepartmentScreen() {
 
   const sortDocuments = (docs: Document[]): Document[] => {
     return [...docs].sort((a, b) => {
-      switch (sortBy) {
-        case "newest":
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        case "oldest":
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        case "title":
-          return a.title.localeCompare(b.title);
-        case "size":
-          return b.fileSize - a.fileSize;
-        default:
-          return 0;
+      if (sortBy === "newest") {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      } else {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       }
     });
   };
@@ -116,7 +108,6 @@ export default function DepartmentScreen() {
   const filterAndGroupDocuments = () => {
     let filtered = [...documents];
 
-    // Filter by search query
     if (searchQuery) {
       filtered = filtered.filter(
         (doc) =>
@@ -126,21 +117,17 @@ export default function DepartmentScreen() {
       );
     }
 
-    // Separate department circulars and sort them
     const circulars = sortDocuments(
       filtered.filter((doc) => doc.category === "Department Circulars")
     );
     setDepartmentCirculars(circulars);
 
-    // Filter and group subject-specific documents
     const subjectSpecific = filtered.filter(
       (doc) =>
         doc.category === "Subject-Specific" && isDocumentAccessible(doc, user),
     );
 
-    // Group subject-specific documents by subjectName
     const subjectGroupsMap = new Map<string, Document[]>();
-
     subjectSpecific.forEach((doc) => {
       if (doc.subjectName) {
         if (!subjectGroupsMap.has(doc.subjectName)) {
@@ -161,38 +148,25 @@ export default function DepartmentScreen() {
   };
 
   const isDocumentAccessible = (doc: Document, currentUser: any): boolean => {
-    // If no restrictions, document is accessible to all
-    if (!doc.targetDepartments?.length && !doc.targetSemesters?.length) {
-      return true;
-    }
+    if (!doc.targetDepartments?.length && !doc.targetSemesters?.length) return true;
 
-    // Check department access
     const hasDepartmentAccess =
       !doc.targetDepartments?.length ||
-      (currentUser?.department &&
-        doc.targetDepartments.includes(currentUser.department));
+      (currentUser?.department && doc.targetDepartments.includes(currentUser.department));
 
-    // Check semester access
     const hasSemesterAccess =
       !doc.targetSemesters?.length ||
-      (currentUser?.semester &&
-        doc.targetSemesters.includes(currentUser.semester));
+      (currentUser?.semester && doc.targetSemesters.includes(currentUser.semester));
 
     return hasDepartmentAccess && hasSemesterAccess;
   };
 
-  // Main download handler function
+  // === DOWNLOAD LOGIC (Same as Academics) ===
   const handleDownload = async (document: Document) => {
     try {
-      // Request media library permissions for saving to device
       const { status } = await MediaLibrary.requestPermissionsAsync();
-
       if (status !== 'granted') {
-        Alert.alert(
-          'Permission Required',
-          'Please grant media library permissions to download files.',
-          [{ text: 'OK' }]
-        );
+        Alert.alert('Permission Required', 'Please grant media library permissions to download files.');
         return;
       }
 
@@ -200,37 +174,24 @@ export default function DepartmentScreen() {
         'Download',
         `Download ${document.title}?`,
         [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Download',
-            onPress: () => downloadFile(document),
-          },
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Download', onPress: () => downloadFile(document) },
         ]
       );
     } catch (error) {
-      console.error('Permission error:', error);
       Alert.alert('Error', 'Failed to request permissions');
     }
   };
 
-  // Core download function
   const downloadFile = async (document: Document) => {
     try {
-      // Create a unique filename with timestamp to avoid conflicts
       const timestamp = new Date().getTime();
       const fileExtension = getFileExtension(document.fileName);
       const fileName = `${document.title.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}${fileExtension}`;
-
-      // Define download path
       const downloadPath = `${FileSystem.documentDirectory}${fileName}`;
 
-      // Show loading alert
       Alert.alert('Downloading', `Downloading ${document.title}...`);
 
-      // Create download resumable for better control and progress tracking
       const downloadResumable = FileSystem.createDownloadResumable(
         document.fileUrl,
         downloadPath,
@@ -244,145 +205,68 @@ export default function DepartmentScreen() {
         }
       );
 
-      // Start download
       const result = await downloadResumable.downloadAsync();
 
       if (result && result.uri) {
-        // Clear progress
         setDownloadProgress(prev => {
           const newProgress = { ...prev };
           delete newProgress[document.$id];
           return newProgress;
         });
-
-        // Handle successful download
         await handleDownloadSuccess(result.uri, document, fileName);
       } else {
-        throw new Error('Download failed - no result URI');
+        throw new Error('Download failed');
       }
-
     } catch (error) {
-      // Clear progress on error
       setDownloadProgress(prev => {
         const newProgress = { ...prev };
         delete newProgress[document.$id];
         return newProgress;
       });
-
-      console.error('Download error:', error);
-      Alert.alert(
-        'Download Failed',
-        'Failed to download the file. Please check your internet connection and try again.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Download Failed', 'Please check your connection and try again.');
     }
   };
 
-  // Handle successful download
   const handleDownloadSuccess = async (fileUri: string, document: Document, fileName: string) => {
     try {
       if (Platform.OS === 'ios') {
-        // On iOS, use sharing
         if (await Sharing.isAvailableAsync()) {
-          Alert.alert(
-            'Download Complete',
-            `${document.title} has been downloaded successfully!`,
-            [
-              {
-                text: 'Share',
-                onPress: () => Sharing.shareAsync(fileUri),
-              },
-              {
-                text: 'OK',
-                style: 'default',
-              },
-            ]
-          );
+          Alert.alert('Download Complete', `${document.title} downloaded!`, [
+            { text: 'Share', onPress: () => Sharing.shareAsync(fileUri) },
+            { text: 'OK' }
+          ]);
         } else {
-          Alert.alert('Download Complete', `File saved to: ${fileName}`);
+          Alert.alert('Download Complete', `File saved: ${fileName}`);
         }
       } else {
-        // On Android, save to media library and offer sharing
         try {
           const asset = await MediaLibrary.createAssetAsync(fileUri);
           await MediaLibrary.createAlbumAsync('Downloads', asset, false);
-
-          Alert.alert(
-            'Download Complete',
-            `${document.title} has been saved to your device!`,
-            [
-              {
-                text: 'Share',
-                onPress: () => Sharing.shareAsync(fileUri),
-              },
-              {
-                text: 'OK',
-                style: 'default',
-              },
-            ]
-          );
+          Alert.alert('Download Complete', `${document.title} saved!`, [
+            { text: 'Share', onPress: () => Sharing.shareAsync(fileUri) },
+            { text: 'OK' }
+          ]);
         } catch (mediaError) {
-          console.error('Media library error:', mediaError);
-          // Fallback to sharing if media library fails
           if (await Sharing.isAvailableAsync()) {
-            Alert.alert(
-              'Download Complete',
-              'File downloaded! You can share it now.',
-              [
-                {
-                  text: 'Share',
-                  onPress: () => Sharing.shareAsync(fileUri),
-                },
-                {
-                  text: 'OK',
-                  style: 'default',
-                },
-              ]
-            );
+            Alert.alert('Download Complete', 'You can share the file now.', [
+              { text: 'Share', onPress: () => Sharing.shareAsync(fileUri) },
+              { text: 'OK' }
+            ]);
           } else {
-            Alert.alert('Download Complete', 'File has been downloaded successfully!');
+            Alert.alert('Download Complete', 'File downloaded!');
           }
         }
       }
     } catch (error) {
-      console.error('Post-download handling error:', error);
-      Alert.alert('Download Complete', 'File downloaded, but sharing is not available.');
+      Alert.alert('Download Complete', 'File downloaded, sharing unavailable.');
     }
   };
 
-  // Helper function to extract file extension
   const getFileExtension = (fileName: string): string => {
     const lastDotIndex = fileName.lastIndexOf('.');
     return lastDotIndex !== -1 ? fileName.substring(lastDotIndex) : '';
   };
 
-  // Optional: Function to check available storage space
-  const checkStorageSpace = async (): Promise<boolean> => {
-    try {
-      const freeDiskStorage = await FileSystem.getFreeDiskStorageAsync();
-      // Check if there's at least 50MB free space
-      return freeDiskStorage > 50 * 1024 * 1024;
-    } catch (error) {
-      console.error('Storage check error:', error);
-      return true; // Assume there's space if we can't check
-    }
-  };
-
-  // Enhanced download with storage check
-  const downloadFileWithStorageCheck = async (document: Document) => {
-    const hasSpace = await checkStorageSpace();
-
-    if (!hasSpace) {
-      Alert.alert(
-        'Insufficient Storage',
-        'Not enough storage space available. Please free up some space and try again.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    await downloadFile(document);
-  };
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 B";
     const k = 1024;
@@ -398,7 +282,6 @@ export default function DepartmentScreen() {
       day: "numeric",
     });
   };
-
 
   const renderDocumentCard = (item: Document, isCompact: boolean = false) => {
     const progress = downloadProgress[item.$id];
@@ -417,22 +300,14 @@ export default function DepartmentScreen() {
               </Text>
             )}
 
-            {/* Download Progress Bar */}
             {isDownloading && (
               <View className="mt-2">
                 <View className="flex-row justify-between items-center mb-1">
-                  <Text className="text-lime-400 text-xs font-grotesk">
-                    Downloading...
-                  </Text>
-                  <Text className="text-lime-400 text-xs font-groteskBold">
-                    {progress}%
-                  </Text>
+                  <Text className="text-lime-400 text-xs font-grotesk">Downloading...</Text>
+                  <Text className="text-lime-400 text-xs font-groteskBold">{progress}%</Text>
                 </View>
                 <View className="h-1 bg-neutral-200 rounded-full overflow-hidden">
-                  <View
-                    className="h-full bg-lime-400 transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  />
+                  <View className="h-full bg-lime-400 transition-all duration-300" style={{ width: `${progress}%` }} />
                 </View>
               </View>
             )}
@@ -477,59 +352,12 @@ export default function DepartmentScreen() {
     );
   };
 
-  const renderSubjectSection = (subject: SubjectGroup) => (
-    <View key={subject.subjectName} className="mb-6">
-      <View className="flex-row items-center mb-4 pb-2 border-b border-neutral-200">
-        <BookOpen size={20} color="#a3a3a3" />
-        <Text className="text-xl font-groteskBold text-black ml-2">
-          {subject.subjectName}
-        </Text>
-        <View className="ml-auto bg-lime-400 px-2 py-1 rounded-full">
-          <Text className="text-black text-xs font-groteskBold">
-            {subject.data.length}
-          </Text>
-        </View>
-      </View>
-      {subject.data.map((document) => renderDocumentCard(document, true))}
-    </View>
-  );
-
-  const renderSortOptions = () => (
-    <View className="bg-white border border-neutral-200 rounded-lg p-4 mb-4">
-      <Text className="text-black font-groteskBold mb-3">Sort by</Text>
-      <View className="flex-row flex-wrap gap-2">
-        {[
-          { key: "newest", label: "Newest" },
-          { key: "oldest", label: "Oldest" },
-          { key: "title", label: "Title" },
-          { key: "size", label: "File Size" },
-        ].map((option) => (
-          <TouchableOpacity
-            key={option.key}
-            onPress={() => setSortBy(option.key as SortOption)}
-            className={`px-3 py-2 rounded-full border ${sortBy === option.key
-              ? "bg-lime-400 border-lime-400"
-              : "bg-white border-neutral-200"
-              }`}
-          >
-            <Text
-              className={`text-sm font-grotesk ${sortBy === option.key ? "text-black font-groteskBold" : "text-neutral-400"
-                }`}
-            >
-              {option.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-neutral-200">
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#a3f948" />
-          <Text className="text-black font-grotesk mt-4">
+          <ActivityIndicator size="large" color="#a3e635" />
+          <Text className="text-black mt-4 font-grotesk">
             Loading department materials...
           </Text>
         </View>
@@ -537,106 +365,150 @@ export default function DepartmentScreen() {
     );
   }
 
-  const hasContent = departmentCirculars.length > 0 || subjectGroups.length > 0;
-  const totalDocuments = departmentCirculars.length + subjectGroups.reduce((acc, group) => acc + group.data.length, 0);
+  const totalDocuments = departmentCirculars.length + subjectGroups.reduce((acc, g) => acc + g.data.length, 0);
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-200">
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 80 }} // Add this line
+        contentContainerStyle={{ paddingBottom: 80 }}
       >
         {/* Header */}
-        <View className="px-6 py-6 bg-white border-b border-neutral-200">
-          <Text className="text-3xl font-groteskBold text-black mb-2">Department</Text>
-          <Text className="text-neutral-400 font-grotesk">
+        <View className="px-6 pt-6 pb-4">
+          <Text className="text-4xl font-groteskBold text-black mb-2">
+            Department
+          </Text>
+          <Text className="text-neutral-400 font-grotesk text-base">
             {user?.department} • Semester {user?.semester}
           </Text>
-          {hasContent && (
+          {totalDocuments > 0 && (
             <Text className="text-lime-400 font-groteskBold text-sm mt-1">
-              {totalDocuments} documents available
+              {totalDocuments} document{totalDocuments !== 1 ? 's' : ''} available
             </Text>
           )}
         </View>
 
-        {/* Search and Filter Bar */}
-        <View className="px-6 py-4 bg-white border-b border-neutral-200">
-          <View className="flex-row items-center bg-neutral-200 rounded-lg px-4 py-3 mb-3">
+        {/* Search Bar */}
+        <View className="px-6 mb-4">
+          <View className="flex-row items-center bg-white rounded-2xl px-4 py-4 shadow-sm border border-neutral-300">
             <Search size={20} color="#a3a3a3" />
             <TextInput
-              className="flex-1 ml-3 text-black font-grotesk"
-              placeholder="Search department materials..."
+              className="flex-1 ml-3 text-black font-grotesk text-base"
+              placeholder="Search materials, subjects..."
               placeholderTextColor="#a3a3a3"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
           </View>
-
-          <View className="flex-row items-center justify-between">
-            <TouchableOpacity
-              onPress={() => setShowFilters(!showFilters)}
-              className="flex-row items-center bg-neutral-200 px-3 py-2 rounded-lg"
-            >
-              <Filter size={16} color="#a3a3a3" />
-              <Text className="text-neutral-400 font-grotesk ml-2">Sort & Filter</Text>
-            </TouchableOpacity>
-
-            <View className="flex-row items-center">
-              <SortAsc size={16} color="#a3a3a3" />
-              <Text className="text-neutral-400 font-grotesk ml-1 capitalize">{sortBy}</Text>
-            </View>
-          </View>
         </View>
 
-        <View className="px-6 py-4">
-          {showFilters && renderSortOptions()}
+        {/* Filter and Sort Row */}
+        <View className="px-6 mb-6">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
+            <View className="flex-row space-x-3">
+              {(["all", "Circulars", "Subjects"] as const).map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  className={`px-6 py-3 rounded-full border ${(type === "all" && !searchQuery && departmentCirculars.length + subjectGroups.length > 0) ||
+                      (type === "Circulars" && departmentCirculars.length > 0) ||
+                      (type === "Subjects" && subjectGroups.length > 0)
+                      ? "bg-lime-400 border-lime-400"
+                      : "bg-white border-neutral-300"
+                    }`}
+                  onPress={() => { }}
+                  disabled
+                >
+                  <Text
+                    className={`font-grotesk font-medium ${(type === "all" && !searchQuery) ||
+                        (type === "Circulars" && departmentCirculars.length > 0) ||
+                        (type === "Subjects" && subjectGroups.length > 0)
+                        ? "text-black" : "text-neutral-400"
+                      }`}
+                  >
+                    {type === "all" ? "All" : type}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
 
-          {!hasContent ? (
-            <View className="flex-1 justify-center items-center py-16">
-              <Building2 size={64} color="#a3a3a3" />
-              <Text className="text-neutral-400 font-grotesk text-center mt-4 text-lg">
+          {/* Sort Button */}
+          <TouchableOpacity
+            className="bg-white border border-neutral-300 px-4 py-3 rounded-2xl flex-row items-center justify-between w-40"
+            onPress={() => setSortBy(sortBy === "newest" ? "oldest" : "newest")}
+          >
+            <Text className="text-black font-grotesk">
+              {sortBy === "newest" ? "Newest" : "Oldest"}
+            </Text>
+            {sortBy === "newest" ? (
+              <SortDesc size={16} color="#000" />
+            ) : (
+              <SortAsc size={16} color="#000" />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Results Count */}
+        <View className="px-6 mb-4">
+          <Text className="text-neutral-400 font-grotesk">
+            {totalDocuments} item{totalDocuments !== 1 ? "s" : ""} found
+          </Text>
+        </View>
+
+        {/* Content */}
+        <View className="px-6 pb-6">
+          {totalDocuments === 0 ? (
+            <View className="flex-1 justify-center items-center py-16 bg-white rounded-2xl border border-neutral-300">
+              <Building2 size={48} color="#a3a3a3" />
+              <Text className="text-neutral-400 text-center mt-4 font-grotesk text-base px-8">
                 {searchQuery
-                  ? "No department materials match your search"
-                  : "No materials available for your department"}
-              </Text>
-              <Text className="text-neutral-400 font-grotesk text-center mt-2">
-                Check back later for updates
+                  ? "No department materials match your search criteria"
+                  : "No materials available for your department yet"}
               </Text>
             </View>
           ) : (
-            <>
-              {/* Subject-Specific Materials Section */}
+            <View className="space-y-6">
+              {/* Subject Materials */}
               {subjectGroups.length > 0 && (
-                <View className="mb-8">
-                  <View className="flex-row items-center mb-4 pb-3 border-b-2 border-lime-400">
+                <View>
+                  <View className="flex-row items-center mb-4 pb-2 border-b-2 border-lime-400">
                     <BookOpen size={24} color="black" />
-                    <Text className="text-2xl font-groteskBold text-black ml-2">
+                    <Text className="text-xl font-groteskBold text-black ml-2">
                       Subject Materials
                     </Text>
                   </View>
-                  {subjectGroups.map((subject) => renderSubjectSection(subject))}
+                  {subjectGroups.map((group) => (
+                    <View key={group.subjectName} className="mb-5">
+                      <View className="flex-row items-center mb-3">
+                        <Text className="text-lg font-groteskBold text-black flex-1">
+                          {group.subjectName}
+                        </Text>
+                        <View className="bg-lime-400 px-2 py-1 rounded-full">
+                          <Text className="text-black text-xs font-groteskBold">
+                            {group.data.length}
+                          </Text>
+                        </View>
+                      </View>
+                      {group.data.map((doc) => renderDocumentCard(doc, true))}
+                    </View>
+                  ))}
                 </View>
               )}
 
-              {/* Department Circulars Section */}
+              {/* Department Circulars */}
               {departmentCirculars.length > 0 && (
-                <View className="mb-6">
-                  <View className="flex-row items-center mb-4 pb-3 border-b-2 border-lime-400">
+                <View>
+                  <View className="flex-row items-center mb-4 pb-2 border-b-2 border-lime-400">
                     <Building2 size={24} color="black" />
-                    <Text className="text-2xl font-groteskBold text-black ml-2">
+                    <Text className="text-xl font-groteskBold text-black ml-2">
                       Department Circulars
                     </Text>
-                    <View className="ml-auto bg-lime-400 px-3 py-1 rounded-full">
-                      <Text className="text-black text-sm font-groteskBold">
-                        {departmentCirculars.length}
-                      </Text>
-                    </View>
                   </View>
-                  {departmentCirculars.map((document) => renderDocumentCard(document))}
+                  {departmentCirculars.map((doc) => renderDocumentCard(doc))}
                 </View>
               )}
-            </>
+            </View>
           )}
         </View>
       </ScrollView>
