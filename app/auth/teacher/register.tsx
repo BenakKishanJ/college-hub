@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
-  Animated,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -23,7 +22,6 @@ import {
   EyeOff,
   ArrowLeft,
   UserPlus,
-  GraduationCap,
 } from "lucide-react-native";
 import { Card } from "../../../components/ui/card";
 import { Button, ButtonText } from "../../../components/ui/button";
@@ -43,25 +41,9 @@ export default function TeacherRegisterScreen() {
   const [showSecretCode, setShowSecretCode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
-  const [fadeAnim] = useState(new Animated.Value(0));
-  const [slideAnim] = useState(new Animated.Value(50));
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const { register } = useAuth();
-  const logoImage = require('@/assets/logo.png')
-
-  React.useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
+  const logoImage = require('@/assets/logo.png');
 
   const validateInputs = () => {
     if (
@@ -193,15 +175,8 @@ export default function TeacherRegisterScreen() {
           </View>
 
           <View className="flex-1 px-6 pb-6">
-            <Animated.View
-              style={{
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              }}
-              className="items-center mb-8"
-            >
+            <View className="items-center mb-8">
               <View className="bg-white rounded-full p-4 mb-6 overflow-hidden">
-                {/* <GraduationCap size={48} color="black" /> */}
                 <Image source={logoImage} style={{ width: 120, height: 120 }} />
               </View>
 
@@ -211,20 +186,17 @@ export default function TeacherRegisterScreen() {
               <Text className="text-neutral-400 font-grotesk text-center text-lg">
                 Create your teacher account
               </Text>
-            </Animated.View>
+            </View>
 
-            <Animated.View
-              style={{
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              }}
-            >
+            <View>
               <Card className="bg-white border border-neutral-200 p-6 mb-6">
                 <View className="mb-4">
                   <Text className="text-black font-groteskBold mb-2">
                     Full Name
                   </Text>
-                  <View className="flex-row items-center bg-neutral-200 rounded-lg px-4 py-3 border border-neutral-200">
+                  <View
+                    className="flex-row items-center bg-neutral-50 rounded-lg px-4 py-3 border-2"
+                    style={{ borderColor: focusedField === 'displayName' ? '#a3e635' : '#d4d4d8' }}>
                     <User size={20} color="#a3a3a3" />
                     <TextInput
                       className="flex-1 ml-3 text-black font-grotesk"
@@ -234,6 +206,8 @@ export default function TeacherRegisterScreen() {
                       onChangeText={(text) =>
                         setFormData({ ...formData, displayName: text })
                       }
+                      onFocus={() => setFocusedField('displayName')}
+                      onBlur={() => setFocusedField(null)}
                       editable={!isLoading}
                       autoCorrect={false}
                     />
@@ -244,7 +218,9 @@ export default function TeacherRegisterScreen() {
                   <Text className="text-black font-groteskBold mb-2">
                     Email
                   </Text>
-                  <View className="flex-row items-center bg-neutral-200 rounded-lg px-4 py-3 border border-neutral-200">
+                  <View
+                    className="flex-row items-center bg-neutral-50 rounded-lg px-4 py-3 border-2"
+                    style={{ borderColor: focusedField === 'email' ? '#a3e635' : '#d4d4d8' }}>
                     <Mail size={20} color="#a3a3a3" />
                     <TextInput
                       className="flex-1 ml-3 text-black font-grotesk"
@@ -254,6 +230,8 @@ export default function TeacherRegisterScreen() {
                       onChangeText={(text) =>
                         setFormData({ ...formData, email: text.toLowerCase() })
                       }
+                      onFocus={() => setFocusedField('email')}
+                      onBlur={() => setFocusedField(null)}
                       autoCapitalize="none"
                       keyboardType="email-address"
                       autoCorrect={false}
@@ -266,7 +244,9 @@ export default function TeacherRegisterScreen() {
                   <Text className="text-black font-groteskBold mb-2">
                     Password
                   </Text>
-                  <View className="flex-row items-center bg-neutral-200 rounded-lg px-4 py-3 border border-neutral-200">
+                  <View
+                    className="flex-row items-center bg-neutral-50 rounded-lg px-4 py-3 border-2"
+                    style={{ borderColor: focusedField === 'password' ? '#a3e635' : '#d4d4d8' }}>
                     <Lock size={20} color="#a3a3a3" />
                     <TextInput
                       className="flex-1 ml-3 text-black font-grotesk"
@@ -276,6 +256,8 @@ export default function TeacherRegisterScreen() {
                       onChangeText={(text) =>
                         setFormData({ ...formData, password: text })
                       }
+                      onFocus={() => setFocusedField('password')}
+                      onBlur={() => setFocusedField(null)}
                       secureTextEntry={!showPassword}
                       autoCorrect={false}
                       editable={!isLoading}
@@ -297,7 +279,9 @@ export default function TeacherRegisterScreen() {
                   <Text className="text-black font-groteskBold mb-2">
                     Confirm Password
                   </Text>
-                  <View className="flex-row items-center bg-neutral-200 rounded-lg px-4 py-3 border border-neutral-200">
+                  <View
+                    className="flex-row items-center bg-neutral-50 rounded-lg px-4 py-3 border-2"
+                    style={{ borderColor: focusedField === 'confirmPassword' ? '#a3e635' : '#d4d4d8' }}>
                     <Lock size={20} color="#a3a3a3" />
                     <TextInput
                       className="flex-1 ml-3 text-black font-grotesk"
@@ -307,6 +291,8 @@ export default function TeacherRegisterScreen() {
                       onChangeText={(text) =>
                         setFormData({ ...formData, confirmPassword: text })
                       }
+                      onFocus={() => setFocusedField('confirmPassword')}
+                      onBlur={() => setFocusedField(null)}
                       secureTextEntry={!showConfirmPassword}
                       autoCorrect={false}
                       editable={!isLoading}
@@ -330,7 +316,9 @@ export default function TeacherRegisterScreen() {
                   <Text className="text-black font-groteskBold mb-2">
                     Teacher Secret Code
                   </Text>
-                  <View className="flex-row items-center bg-neutral-200 rounded-lg px-4 py-3 border border-neutral-200">
+                  <View
+                    className="flex-row items-center bg-neutral-50 rounded-lg px-4 py-3 border-2"
+                    style={{ borderColor: focusedField === 'secretCode' ? '#a3e635' : '#d4d4d8' }}>
                     <Lock size={20} color="#a3a3a3" />
                     <TextInput
                       className="flex-1 ml-3 text-black font-grotesk"
@@ -340,6 +328,8 @@ export default function TeacherRegisterScreen() {
                       onChangeText={(text) =>
                         setFormData({ ...formData, secretCode: text })
                       }
+                      onFocus={() => setFocusedField('secretCode')}
+                      onBlur={() => setFocusedField(null)}
                       secureTextEntry={!showSecretCode}
                       autoCorrect={false}
                       editable={!isLoading}
@@ -392,7 +382,7 @@ export default function TeacherRegisterScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
-            </Animated.View>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

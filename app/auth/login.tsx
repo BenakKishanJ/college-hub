@@ -35,25 +35,28 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [fadeAnim] = useState(new Animated.Value(0));
-  const [slideAnim] = useState(new Animated.Value(50));
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [fadeAnim] = useState(new Animated.Value(1)); // Start visible
+  const [slideAnim] = useState(new Animated.Value(0)); // Start in position
   const { login } = useAuth();
   const logoImage = require('@/assets/logo.png')
 
-  React.useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
+  // Remove or comment out the animation effect for now
+  // React.useEffect(() => {
+  //   Animated.parallel([
+  //     Animated.timing(fadeAnim, {
+  //       toValue: 1,
+  //       duration: 800,
+  //       useNativeDriver: true,
+  //     }),
+  //     Animated.timing(slideAnim, {
+  //       toValue: 0,
+  //       duration: 600,
+  //       useNativeDriver: true,
+  //     }),
+  //   ]).start();
+  // }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -76,23 +79,15 @@ export default function LoginScreen() {
     <SafeAreaView className="flex-1 bg-neutral-200">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-      >
+        className="flex-1">
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
+          showsVerticalScrollIndicator={false}>
           {/* Header Section */}
           <View className="flex-1 justify-center px-6 py-8">
-            <Animated.View
-              style={{
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              }}
-              className="items-center mb-12"
-            >
+            <View className="items-center mb-12">
               {/* Logo/Icon */}
               <View className="bg-white rounded-full p-4 mb-6 overflow-hidden">
                 {/* <GraduationCap size={48} color="black" /> */}
@@ -106,15 +101,10 @@ export default function LoginScreen() {
               <Text className="text-neutral-400 font-grotesk text-center text-lg">
                 Your academic companion
               </Text>
-            </Animated.View>
+            </View>
 
             {/* Login Form */}
-            <Animated.View
-              style={{
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              }}
-            >
+            <View>
               <Card className="bg-white border border-neutral-200 p-6 mb-6">
                 <View className="mb-6">
                   <Text className="text-2xl font-groteskBold text-black text-center mb-2">
@@ -129,7 +119,9 @@ export default function LoginScreen() {
                   <Text className="text-black font-groteskBold mb-2">
                     Email
                   </Text>
-                  <View className="flex-row items-center bg-neutral-200 rounded-lg px-4 py-3 border border-neutral-200 focus:border-lime-400">
+                  <View
+                    className="flex-row items-center bg-neutral-50 rounded-lg px-4 py-3 border-2"
+                    style={{ borderColor: emailFocused ? '#a3e635' : '#d4d4d8' }}>
                     <Mail size={20} color="#a3a3a3" />
                     <TextInput
                       className="flex-1 ml-3 text-black font-grotesk"
@@ -137,6 +129,8 @@ export default function LoginScreen() {
                       placeholderTextColor="#a3a3a3"
                       value={email}
                       onChangeText={setEmail}
+                      onFocus={() => setEmailFocused(true)}
+                      onBlur={() => setEmailFocused(false)}
                       autoCapitalize="none"
                       keyboardType="email-address"
                       autoCorrect={false}
@@ -149,7 +143,9 @@ export default function LoginScreen() {
                   <Text className="text-black font-groteskBold mb-2">
                     Password
                   </Text>
-                  <View className="flex-row items-center bg-neutral-200 rounded-lg px-4 py-3 border border-neutral-200 focus:border-lime-400">
+                  <View
+                    className="flex-row items-center bg-neutral-50 rounded-lg px-4 py-3 border-2"
+                    style={{ borderColor: passwordFocused ? '#a3e635' : '#d4d4d8' }}>
                     <Lock size={20} color="#a3a3a3" />
                     <TextInput
                       className="flex-1 ml-3 text-black font-grotesk"
@@ -157,14 +153,15 @@ export default function LoginScreen() {
                       placeholderTextColor="#a3a3a3"
                       value={password}
                       onChangeText={setPassword}
+                      onFocus={() => setPasswordFocused(true)}
+                      onBlur={() => setPasswordFocused(false)}
                       secureTextEntry={!showPassword}
                       autoCorrect={false}
                       editable={!isLoading}
                     />
                     <TouchableOpacity
                       onPress={() => setShowPassword(!showPassword)}
-                      className="ml-2"
-                    >
+                      className="ml-2">
                       {showPassword ? (
                         <EyeOff size={20} color="#a3a3a3" />
                       ) : (
@@ -179,13 +176,12 @@ export default function LoginScreen() {
                   size="md"
                   action="primary"
                   onPress={handleLogin}
-                  disabled={isLoading}
-                >
+                  disabled={isLoading}>
                   <ButtonText>
                     {isLoading ? "Signing In..." : "Sign In"}
                   </ButtonText>
                   {!isLoading && <ArrowRight size={20} color="white" />}
-                </Button>{" "}
+                </Button>
               </Card>
 
               {/* Navigation Links */}
@@ -194,8 +190,7 @@ export default function LoginScreen() {
                 <TouchableOpacity
                   onPress={() => router.push("/auth/teacher/login")}
                   disabled={isLoading}
-                  className="bg-white border border-neutral-200 rounded-lg p-4"
-                >
+                  className="bg-white border border-neutral-200 rounded-lg p-4">
                   <View className="flex-row items-center justify-center">
                     <Users size={20} color="#a3a3a3" />
                     <Text className="text-neutral-400 font-grotesk ml-2 mr-1">
@@ -210,19 +205,18 @@ export default function LoginScreen() {
                 {/* Register Link */}
                 <View className="flex-row justify-center items-center">
                   <Text className="text-neutral-400 font-grotesk">
-                    Don't have an account?{" "}
+                    Don't have an account?
                   </Text>
                   <TouchableOpacity
                     onPress={() => router.push("/auth/register")}
-                    disabled={isLoading}
-                  >
-                    <Text className="text-black font-groteskBold">
+                    disabled={isLoading}>
+                    <Text className="text-black font-groteskBold ml-1">
                       Register
                     </Text>
                   </TouchableOpacity>
                 </View>
               </View>
-            </Animated.View>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

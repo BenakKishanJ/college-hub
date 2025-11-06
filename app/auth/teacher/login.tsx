@@ -1,4 +1,3 @@
-// auth/teacher/login.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -9,8 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Animated,
-  Dimensions,
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
@@ -23,14 +20,11 @@ import {
   EyeOff,
   Users,
   ArrowRight,
-  GraduationCap,
 } from "lucide-react-native";
 import { Card } from "../../../components/ui/card";
 import { Button, ButtonText } from "../../../components/ui/button";
 import { verifyTeacherSecretCode } from "../../../lib/appwrite";
 import { Image } from "react-native";
-
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function TeacherLoginScreen() {
   const [email, setEmail] = useState("");
@@ -40,25 +34,9 @@ export default function TeacherLoginScreen() {
   const [showSecretCode, setShowSecretCode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
-  const [fadeAnim] = useState(new Animated.Value(0));
-  const [slideAnim] = useState(new Animated.Value(50));
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const { login } = useAuth();
-  const logoImage = require('@/assets/logo.png')
-
-  React.useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
+  const logoImage = require('@/assets/logo.png');
 
   const validateInputs = () => {
     if (!email.trim() || !password || !secretCode.trim()) {
@@ -156,15 +134,8 @@ export default function TeacherLoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View className="flex-1 justify-center px-6 py-8">
-            <Animated.View
-              style={{
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              }}
-              className="items-center mb-12"
-            >
+            <View className="items-center mb-12">
               <View className="bg-white rounded-full p-4 mb-6 overflow-hidden">
-                {/* <GraduationCap size={48} color="black" /> */}
                 <Image source={logoImage} style={{ width: 120, height: 120 }} />
               </View>
 
@@ -174,14 +145,9 @@ export default function TeacherLoginScreen() {
               <Text className="text-neutral-400 font-grotesk text-center text-lg">
                 Teacher Portal
               </Text>
-            </Animated.View>
+            </View>
 
-            <Animated.View
-              style={{
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              }}
-            >
+            <View>
               <Card className="bg-white border border-neutral-200 p-6 mb-6">
                 <View className="mb-6">
                   <Text className="text-2xl font-groteskBold text-black text-center mb-2">
@@ -196,7 +162,9 @@ export default function TeacherLoginScreen() {
                   <Text className="text-black font-groteskBold mb-2">
                     Email
                   </Text>
-                  <View className="flex-row items-center bg-neutral-200 rounded-lg px-4 py-3 border border-neutral-200">
+                  <View
+                    className="flex-row items-center bg-neutral-50 rounded-lg px-4 py-3 border-2"
+                    style={{ borderColor: focusedField === 'email' ? '#a3e635' : '#d4d4d8' }}>
                     <Mail size={20} color="#a3a3a3" />
                     <TextInput
                       className="flex-1 ml-3 text-black font-grotesk"
@@ -204,6 +172,8 @@ export default function TeacherLoginScreen() {
                       placeholderTextColor="#a3a3a3"
                       value={email}
                       onChangeText={(text) => setEmail(text.toLowerCase())}
+                      onFocus={() => setFocusedField('email')}
+                      onBlur={() => setFocusedField(null)}
                       autoCapitalize="none"
                       keyboardType="email-address"
                       autoCorrect={false}
@@ -216,7 +186,9 @@ export default function TeacherLoginScreen() {
                   <Text className="text-black font-groteskBold mb-2">
                     Password
                   </Text>
-                  <View className="flex-row items-center bg-neutral-200 rounded-lg px-4 py-3 border border-neutral-200">
+                  <View
+                    className="flex-row items-center bg-neutral-50 rounded-lg px-4 py-3 border-2"
+                    style={{ borderColor: focusedField === 'password' ? '#a3e635' : '#d4d4d8' }}>
                     <Lock size={20} color="#a3a3a3" />
                     <TextInput
                       className="flex-1 ml-3 text-black font-grotesk"
@@ -224,6 +196,8 @@ export default function TeacherLoginScreen() {
                       placeholderTextColor="#a3a3a3"
                       value={password}
                       onChangeText={setPassword}
+                      onFocus={() => setFocusedField('password')}
+                      onBlur={() => setFocusedField(null)}
                       secureTextEntry={!showPassword}
                       autoCorrect={false}
                       editable={!isLoading}
@@ -245,7 +219,9 @@ export default function TeacherLoginScreen() {
                   <Text className="text-black font-groteskBold mb-2">
                     Teacher Secret Code
                   </Text>
-                  <View className="flex-row items-center bg-neutral-200 rounded-lg px-4 py-3 border border-neutral-200">
+                  <View
+                    className="flex-row items-center bg-neutral-50 rounded-lg px-4 py-3 border-2"
+                    style={{ borderColor: focusedField === 'secretCode' ? '#a3e635' : '#d4d4d8' }}>
                     <Lock size={20} color="#a3a3a3" />
                     <TextInput
                       className="flex-1 ml-3 text-black font-grotesk"
@@ -253,6 +229,8 @@ export default function TeacherLoginScreen() {
                       placeholderTextColor="#a3a3a3"
                       value={secretCode}
                       onChangeText={setSecretCode}
+                      onFocus={() => setFocusedField('secretCode')}
+                      onBlur={() => setFocusedField(null)}
                       secureTextEntry={!showSecretCode}
                       autoCorrect={false}
                       editable={!isLoading}
@@ -323,7 +301,7 @@ export default function TeacherLoginScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-            </Animated.View>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
