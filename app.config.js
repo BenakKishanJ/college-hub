@@ -1,8 +1,8 @@
 // app.config.js
 export default {
   expo: {
-    name: "college-hub",
-    slug: "college-hub",
+    name: "AITian",
+    slug: "AITian",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
@@ -41,11 +41,11 @@ export default {
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
-          "color": "#a3f948",
-          "sounds": ["./assets/notification-sound.wav"]
-        }
-      ]
+          icon: "./assets/icon.png",
+          color: "#a3f948",
+          sounds: ["./assets/notification-sound.wav"],
+        },
+      ],
     ],
     extra: {
       appwriteEndpoint: process.env.APPWRITE_ENDPOINT,
@@ -60,7 +60,7 @@ export default {
         process.env.APPWRITE_APP_CONFIG_COLLECTION_ID,
       appwriteBucketId: process.env.APPWRITE_BUCKET_ID,
       eas: {
-        "projectId": "b5608ec8-589b-4b5c-bdb8-944b2630a42b"
+        projectId: "b5608ec8-589b-4b5c-bdb8-944b2630a42b",
       },
     },
   },
