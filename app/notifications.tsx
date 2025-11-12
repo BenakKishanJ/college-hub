@@ -17,17 +17,15 @@ import {
   Calendar,
   ChevronRight,
   BellOff,
-  Trash2,
-  MoreVertical,
   ArrowLeft
 } from "lucide-react-native";
 import { databases, APPWRITE_CONFIG } from "../lib/appwrite";
 import { Query } from "appwrite";
 import { Card } from "../components/ui/card";
-import { Button } from "../components/ui/button";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../hooks/useNotifications";
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Notifications from 'expo-notifications';
 
 interface NotificationItem {
@@ -38,10 +36,20 @@ interface NotificationItem {
   sentAt: string;
   type: string;
   recipientCount: number;
-  targetDepartments?: string[]; // Make optional
-  targetSemesters?: string[];   // Make optional
+  targetDepartments?: string[];
+  targetSemesters?: string[];
   isRead?: boolean;
 }
+
+type RootStackParamList = {
+  DocumentDetail: { documentId: string; notificationId: string };
+  Documents: undefined;
+  DepartmentCirculars: undefined;
+  Notifications: undefined;
+  // Add other screens as needed
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function NotificationsScreen() {
   const { user } = useAuth();
@@ -50,7 +58,7 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
-  const navigation = useNavigation()
+  const navigation = useNavigation<NavigationProp>();
 
   useEffect(() => {
     loadNotifications();
@@ -60,7 +68,6 @@ export default function NotificationsScreen() {
     try {
       setLoading(true);
 
-      // Load notifications from database
       const response = await databases.listDocuments(
         APPWRITE_CONFIG.databaseId,
         APPWRITE_CONFIG.collections.notifications,
@@ -72,7 +79,6 @@ export default function NotificationsScreen() {
 
       const allNotifications = response.documents as unknown as NotificationItem[];
 
-      // Filter notifications relevant to current user
       const userNotifications = allNotifications.filter(notification =>
         isNotificationRelevantToUser(notification, user)
       );
@@ -92,24 +98,21 @@ export default function NotificationsScreen() {
   };
 
   const isNotificationRelevantToUser = (notification: NotificationItem, currentUser: any): boolean => {
-    // If no target restrictions, notification is for everyone
     if (!notification.targetDepartments?.length && !notification.targetSemesters?.length) {
       return true;
     }
 
-    // Check if user's department matches target departments
     const departmentMatch = !notification.targetDepartments?.length ||
       (currentUser?.department && notification.targetDepartments.includes(currentUser.department));
 
-    // Check if user's semester matches target semesters
     const semesterMatch = !notification.targetSemesters?.length ||
       (currentUser?.semester && notification.targetSemesters.includes(currentUser.semester));
 
     return departmentMatch && semesterMatch;
   };
+
   const markAsRead = async (notificationId: string) => {
     try {
-      // Mark notification as read in local state
       setNotifications(prev =>
         prev.map(notif =>
           notif.$id === notificationId
@@ -117,9 +120,6 @@ export default function NotificationsScreen() {
             : notif
         )
       );
-
-      // You can also save read status to a separate user_notifications collection
-      // if you want to persist read status per user
     } catch (error) {
       console.error("Error marking notification as read:", error);
     }
@@ -157,27 +157,40 @@ export default function NotificationsScreen() {
     }
   };
 
-  const handleNotificationPress = (notification: NotificationItem) => {
-    markAsRead(notification.$id);
-
+  const handleNotificationPress = async (notification: NotificationItem) => {
     try {
       const data = JSON.parse(notification.data);
 
-      // Navigate based on notification type
-      switch (data.type) {
+      // Navigate based on notification type and data
+      switch (notification.type) {
         case 'new_document':
-          // Navigate to department screen or specific document
-          console.log('Navigate to department screen');
+          if (data.documentId) {
+            // Navigate to the specific document
+            navigation.navigate('DocumentDetail', {
+              documentId: data.documentId,
+              notificationId: notification.$id
+            });
+          } else {
+            // Fallback to documents list
+            navigation.navigate('Documents');
+          }
           break;
         case 'department_circular':
-          // Navigate to department screen
-          console.log('Navigate to department screen');
+          navigation.navigate('DepartmentCirculars');
           break;
         default:
+          // Default navigation or stay on notifications
           console.log('Default notification action');
+      }
+
+      // Mark as read after navigation
+      if (!notification.isRead) {
+        await markAsRead(notification.$id);
       }
     } catch (error) {
       console.error('Error parsing notification data:', error);
+      // Fallback action
+      navigation.navigate('Documents');
     }
   };
 
@@ -187,17 +200,28 @@ export default function NotificationsScreen() {
       onPress={() => handleNotificationPress(notification)}
       className="mb-3"
     >
-      <Card className={`bg-white border p-4 ${notification.isRead ? 'border-neutral-200' : 'border-lime-400 bg-lime-50'}`}>
-        <View className="flex-row items-start justify-between mb-2">
+      <Card className={`bg-white border-l-4 ${notification.isRead
+        ? 'border-l-transparent border-neutral-200'
+        : 'border-l-lime-400 border-neutral-200'
+        } p-4 shadow-sm`}>
+        <View className="flex-row items-start justify-between">
           <View className="flex-row items-start flex-1 mr-3">
             <View className="mr-3 mt-1">
               {getNotificationIcon(notification.type)}
             </View>
             <View className="flex-1">
-              <Text className={`text-black ${notification.isRead ? 'font-grotesk' : 'font-groteskBold'} text-base mb-1`}>
-                {notification.title}
-              </Text>
-              <Text className="text-neutral-400 font-grotesk text-sm mb-2">
+              <View className="flex-row items-start justify-between mb-2">
+                <Text className={`flex-1 ${notification.isRead
+                  ? 'text-neutral-600 font-grotesk'
+                  : 'text-black font-groteskBold'
+                  } text-base mr-2`}>
+                  {notification.title}
+                </Text>
+                {!notification.isRead && (
+                  <View className="w-2 h-2 bg-lime-400 rounded-full mt-2" />
+                )}
+              </View>
+              <Text className="text-neutral-500 font-grotesk text-sm mb-3 leading-5">
                 {notification.body}
               </Text>
               <View className="flex-row items-center justify-between">
@@ -208,8 +232,8 @@ export default function NotificationsScreen() {
                   </Text>
                 </View>
                 {notification.targetDepartments && notification.targetDepartments?.length > 0 && (
-                  <View className="bg-neutral-200 px-2 py-1 rounded-full">
-                    <Text className="text-neutral-400 text-xs font-grotesk">
+                  <View className="bg-neutral-100 px-2 py-1 rounded-full">
+                    <Text className="text-neutral-500 text-xs font-grotesk">
                       {notification.targetDepartments?.join(', ')}
                     </Text>
                   </View>
@@ -217,12 +241,7 @@ export default function NotificationsScreen() {
               </View>
             </View>
           </View>
-          <View className="items-center">
-            {!notification.isRead && (
-              <View className="w-2 h-2 bg-lime-400 rounded-full mb-2" />
-            )}
-            <ChevronRight size={16} color="#a3a3a3" />
-          </View>
+          <ChevronRight size={16} color="#a3a3a3" />
         </View>
       </Card>
     </TouchableOpacity>
@@ -230,7 +249,7 @@ export default function NotificationsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-200">
+      <SafeAreaView className="flex-1 bg-neutral-50">
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#a3f948" />
           <Text className="text-black font-grotesk mt-4">
@@ -251,10 +270,8 @@ export default function NotificationsScreen() {
     try {
       const { status } = await Notifications.requestPermissionsAsync();
       if (status === 'granted') {
-        // Manually trigger notification registration
         const token = await registerForPushNotificationsAsync();
         if (token && user?.$id) {
-          // Save the token
           await databases.updateDocument(
             APPWRITE_CONFIG.databaseId,
             APPWRITE_CONFIG.collections.users,
@@ -275,9 +292,8 @@ export default function NotificationsScreen() {
     }
   };
 
-
   return (
-    <SafeAreaView className="flex-1 bg-neutral-200">
+    <SafeAreaView className="flex-1 bg-neutral-50">
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -286,7 +302,7 @@ export default function NotificationsScreen() {
         }
         contentContainerStyle={{ paddingBottom: 80 }}
       >
-        {/* Header - FIXED */}
+        {/* Header */}
         <View className="px-6 py-6 bg-white border-b border-neutral-200">
           <View className="flex-row items-center mb-2">
             <TouchableOpacity
@@ -312,57 +328,69 @@ export default function NotificationsScreen() {
             </View>
           </View>
 
-          <Text className="text-neutral-400 font-grotesk">
+          <Text className="text-neutral-500 font-grotesk">
             Stay updated with the latest announcements
           </Text>
-          {expoPushToken && (
-            <Text className="text-lime-400 font-groteskBold text-sm mt-1">
+
+          {expoPushToken ? (
+            <Text className="text-lime-600 font-groteskBold text-sm mt-1">
               Push notifications enabled
             </Text>
-          )}
-          {!expoPushToken && (
+          ) : (
             <TouchableOpacity
               onPress={enableNotifications}
-              className="bg-lime-400 px-6 py-3 rounded-lg mt-4"
+              className="bg-lime-400 px-6 py-3 rounded-lg mt-4 active:bg-lime-500"
             >
               <Text className="text-black font-groteskBold text-center">
                 Enable Push Notifications
               </Text>
             </TouchableOpacity>
           )}
-
-
         </View>
+
         {/* Filter Tabs */}
         <View className="px-6 py-4 bg-white border-b border-neutral-200">
-          <View className="flex-row bg-neutral-200 rounded-lg p-1">
+          <View className="flex-row bg-neutral-100 rounded-lg p-1">
             <TouchableOpacity
               onPress={() => setFilter('all')}
-              className={`flex-1 py-2 px-4 rounded-lg ${filter === 'all' ? 'bg-lime-400' : 'bg-transparent'}`}
+              className={`flex-1 py-2 px-4 rounded-lg ${filter === 'all'
+                ? 'bg-lime-400 shadow-sm'
+                : 'bg-transparent'
+                }`}
             >
-              <Text className={`text-center font-grotesk ${filter === 'all' ? 'text-black font-groteskBold' : 'text-neutral-400'}`}>
+              <Text className={`text-center font-grotesk ${filter === 'all'
+                ? 'text-black font-groteskBold'
+                : 'text-neutral-500'
+                }`}>
                 All ({notifications.length})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setFilter('unread')}
-              className={`flex-1 py-2 px-4 rounded-lg ${filter === 'unread' ? 'bg-lime-400' : 'bg-transparent'}`}
+              className={`flex-1 py-2 px-4 rounded-lg ${filter === 'unread'
+                ? 'bg-lime-400 shadow-sm'
+                : 'bg-transparent'
+                }`}
             >
-              <Text className={`text-center font-grotesk ${filter === 'unread' ? 'text-black font-groteskBold' : 'text-neutral-400'}`}>
+              <Text className={`text-center font-grotesk ${filter === 'unread'
+                ? 'text-black font-groteskBold'
+                : 'text-neutral-500'
+                }`}>
                 Unread ({unreadCount})
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* Notifications List */}
         <View className="px-6 py-4">
           {filteredNotifications.length === 0 ? (
             <View className="flex-1 justify-center items-center py-16">
-              <BellOff size={64} color="#a3a3a3" />
+              <BellOff size={64} color="#d4d4d4" />
               <Text className="text-neutral-400 font-grotesk text-center mt-4 text-lg">
                 {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
               </Text>
-              <Text className="text-neutral-400 font-grotesk text-center mt-2">
+              <Text className="text-neutral-400 font-grotesk text-center mt-2 text-sm">
                 You'll be notified when new content is available
               </Text>
             </View>

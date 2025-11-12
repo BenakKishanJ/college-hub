@@ -32,7 +32,6 @@ import { Picker } from "@react-native-picker/picker";
 import { router } from "expo-router";
 import { AuthGuard } from "../components/AuthGuard";
 import { Card } from "../components/ui/card";
-import { Button, ButtonText } from "../components/ui/button";
 
 // Define department options
 const DEPARTMENT_OPTIONS = [
@@ -168,20 +167,33 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      router.replace("/auth");
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to logout");
-    }
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await logout();
+              router.replace("/auth");
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to logout");
+            }
+          }
+        },
+      ]
+    );
   };
 
   if (isLoading || authLoading) {
     return (
       <AuthGuard>
-        <SafeAreaView className="flex-1 bg-neutral-200">
+        <SafeAreaView className="flex-1 bg-white">
           <View className="flex-1 justify-center items-center">
-            <ActivityIndicator size="large" color="#a3f948" />
+            <ActivityIndicator size="large" color="black" />
             <Text className="text-black font-grotesk mt-4">
               Loading profile...
             </Text>
@@ -194,7 +206,7 @@ export default function ProfileScreen() {
   if (!user) {
     return (
       <AuthGuard>
-        <SafeAreaView className="flex-1 bg-neutral-200">
+        <SafeAreaView className="flex-1 bg-white">
           <View className="flex-1 justify-center items-center p-4">
             <Text className="text-lg text-neutral-400 font-grotesk">
               Please log in to view your profile
@@ -207,14 +219,15 @@ export default function ProfileScreen() {
 
   return (
     <AuthGuard>
-      <SafeAreaView className="flex-1 bg-neutral-200">
-        <ScrollView className="flex-1">
+      <SafeAreaView className="flex-1 bg-white">
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           {/* Header */}
-          <View className="px-6 py-4 bg-white border-b border-neutral-200">
+          <View className="px-6 py-4 border-b-2 border-black">
             <View className="flex-row items-center justify-between">
               <TouchableOpacity
                 onPress={() => router.back()}
-                className="bg-neutral-200 p-2 rounded-lg"
+                className="p-2"
+                activeOpacity={0.8}
               >
                 <ArrowLeft size={24} color="black" />
               </TouchableOpacity>
@@ -227,7 +240,7 @@ export default function ProfileScreen() {
 
           {/* Profile Completion Banner */}
           {!isProfileComplete() && (
-            <View className="bg-lime-400 border-b border-lime-500 px-6 py-4">
+            <View className="bg-lime-400 px-6 py-4 border-b-2 border-black">
               <View className="flex-row items-center">
                 <AlertCircle size={20} color="black" />
                 <Text className="text-black font-groteskBold ml-3 flex-1">
@@ -241,10 +254,7 @@ export default function ProfileScreen() {
           <View className="px-6 py-6">
             {/* User Role Badge */}
             <View className="mb-6">
-              <View
-                className={`self-start px-4 py-2 rounded-full ${user.role === "teacher" ? "bg-lime-400" : "bg-lime-400"
-                  }`}
-              >
+              <View className="self-start bg-lime-400 px-4 py-2 rounded-full border-2 border-black">
                 <Text className="text-black font-groteskBold text-sm">
                   {user.role?.toUpperCase() || "USER"}
                 </Text>
@@ -252,11 +262,11 @@ export default function ProfileScreen() {
             </View>
 
             {/* Profile Header Card */}
-            <Card className="bg-white border border-neutral-200 p-6 mb-6">
+            <Card className="bg-white border-2 border-black p-6 mb-6">
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center flex-1">
-                  <View className="bg-lime-400 rounded-full w-16 h-16 items-center justify-center mr-4">
-                    <User size={28} color="black" />
+                  <View className="bg-black rounded-full w-16 h-16 items-center justify-center mr-4 border-2 border-black">
+                    <User size={28} color="white" />
                   </View>
                   <View className="flex-1">
                     {!isEditing ? (
@@ -265,7 +275,7 @@ export default function ProfileScreen() {
                       </Text>
                     ) : (
                       <TextInput
-                        className="text-xl font-groteskBold text-black border-b-2 border-lime-400 pb-1 mb-1"
+                        className="text-xl font-groteskBold text-black border-b-2 border-black pb-1 mb-1"
                         value={formData.displayName}
                         onChangeText={(text) =>
                           setFormData({ ...formData, displayName: text })
@@ -274,39 +284,42 @@ export default function ProfileScreen() {
                         placeholderTextColor="#a3a3a3"
                       />
                     )}
-                    <Text className="text-neutral-400 font-grotesk">
+                    <Text className="text-neutral-500 font-grotesk">
                       {user.email}
                     </Text>
                   </View>
                 </View>
 
                 {!isEditing ? (
-                  <Button
+                  <TouchableOpacity
                     onPress={() => setIsEditing(true)}
-                    className="bg-lime-400 p-3 rounded-lg ml-4"
+                    className="bg-black p-3 rounded-lg ml-4"
+                    activeOpacity={0.8}
                   >
-                    <Edit3 size={20} color="black" />
-                  </Button>
+                    <Edit3 size={20} color="white" />
+                  </TouchableOpacity>
                 ) : (
                   <View className="flex-row space-x-2 ml-4">
-                    <Button
+                    <TouchableOpacity
                       onPress={handleCancel}
-                      className="bg-neutral-200 p-3 rounded-lg"
+                      className="bg-white border-2 border-black p-3 rounded-lg"
+                      activeOpacity={0.8}
                     >
                       <X size={20} color="black" />
-                    </Button>
-                    <Button
+                    </TouchableOpacity>
+                    <TouchableOpacity
                       onPress={handleSave}
                       disabled={isSaving}
-                      className="bg-lime-400 p-3 rounded-lg"
+                      className="bg-black p-3 rounded-lg"
+                      activeOpacity={0.8}
                       style={{ opacity: isSaving ? 0.7 : 1 }}
                     >
                       {isSaving ? (
-                        <ActivityIndicator color="black" size="small" />
+                        <ActivityIndicator color="white" size="small" />
                       ) : (
-                        <Save size={20} color="black" />
+                        <Save size={20} color="white" />
                       )}
-                    </Button>
+                    </TouchableOpacity>
                   </View>
                 )}
               </View>
@@ -315,10 +328,10 @@ export default function ProfileScreen() {
             {/* Profile Details */}
             <View className="space-y-4">
               {/* Department */}
-              <Card className="bg-white border border-neutral-200 p-4">
+              <Card className="bg-white border-2 border-black p-5">
                 <View className="flex-row items-center mb-3">
-                  <Building size={20} color="#a3a3a3" />
-                  <Text className="text-neutral-400 font-groteskBold ml-2">
+                  <Building size={20} color="#000" />
+                  <Text className="text-black font-groteskBold ml-2">
                     Department
                   </Text>
                 </View>
@@ -327,7 +340,7 @@ export default function ProfileScreen() {
                     {user.department || "Not set"}
                   </Text>
                 ) : (
-                  <View className="border border-neutral-200 rounded-lg bg-neutral-200">
+                  <View className="border-2 border-black rounded-lg bg-white">
                     <Picker
                       selectedValue={formData.department}
                       onValueChange={(value) =>
@@ -356,10 +369,10 @@ export default function ProfileScreen() {
 
               {/* Semester (Only for students) */}
               {user.role === "student" && (
-                <Card className="bg-white border border-neutral-200 p-4">
+                <Card className="bg-white border-2 border-black p-5">
                   <View className="flex-row items-center mb-3">
-                    <BookOpen size={20} color="#a3a3a3" />
-                    <Text className="text-neutral-400 font-groteskBold ml-2">
+                    <BookOpen size={20} color="#000" />
+                    <Text className="text-black font-groteskBold ml-2">
                       Semester
                     </Text>
                   </View>
@@ -368,7 +381,7 @@ export default function ProfileScreen() {
                       {user.semester || "Not set"}
                     </Text>
                   ) : (
-                    <View className="border border-neutral-200 rounded-lg bg-neutral-200">
+                    <View className="border-2 border-black rounded-lg bg-white">
                       <Picker
                         selectedValue={formData.semester}
                         onValueChange={(value) =>
@@ -397,10 +410,10 @@ export default function ProfileScreen() {
               )}
 
               {/* Phone Number */}
-              <Card className="bg-white border border-neutral-200 p-4">
+              <Card className="bg-white border-2 border-black p-5">
                 <View className="flex-row items-center mb-3">
-                  <Phone size={20} color="#a3a3a3" />
-                  <Text className="text-neutral-400 font-groteskBold ml-2">
+                  <Phone size={20} color="#000" />
+                  <Text className="text-black font-groteskBold ml-2">
                     Phone Number
                   </Text>
                 </View>
@@ -410,7 +423,7 @@ export default function ProfileScreen() {
                   </Text>
                 ) : (
                   <TextInput
-                    className="text-black font-grotesk text-lg border border-neutral-200 rounded-lg p-3 bg-neutral-200"
+                    className="text-black font-grotesk text-lg border-2 border-black rounded-lg p-3 bg-white"
                     value={formData.phoneNumber}
                     onChangeText={(text) =>
                       setFormData({ ...formData, phoneNumber: text })
@@ -423,10 +436,10 @@ export default function ProfileScreen() {
               </Card>
 
               {/* Email (Read-only) */}
-              <Card className="bg-white border border-neutral-200 p-4">
+              <Card className="bg-white border-2 border-black p-5">
                 <View className="flex-row items-center mb-3">
-                  <Mail size={20} color="#a3a3a3" />
-                  <Text className="text-neutral-400 font-groteskBold ml-2">
+                  <Mail size={20} color="#000" />
+                  <Text className="text-black font-groteskBold ml-2">
                     Email
                   </Text>
                 </View>
@@ -436,20 +449,20 @@ export default function ProfileScreen() {
               </Card>
 
               {/* Profile Completion Status */}
-              <Card className="bg-white border border-neutral-200 p-4">
+              <Card className="bg-white border-2 border-black p-5">
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center">
                     {isProfileComplete() ? (
-                      <CheckCircle size={20} color="#a3f948" />
+                      <CheckCircle size={20} color="#000" />
                     ) : (
-                      <AlertCircle size={20} color="#F59E0B" />
+                      <AlertCircle size={20} color="#000" />
                     )}
-                    <Text className="text-neutral-400 font-groteskBold ml-2">
+                    <Text className="text-black font-groteskBold ml-2">
                       Profile Status
                     </Text>
                   </View>
                   <View
-                    className={`px-3 py-1 rounded-full ${isProfileComplete() ? "bg-lime-400" : "bg-yellow-400"
+                    className={`px-3 py-1 rounded-full border-2 border-black ${isProfileComplete() ? "bg-lime-400" : "bg-white"
                       }`}
                   >
                     <Text className="font-groteskBold text-black text-sm">
@@ -458,7 +471,7 @@ export default function ProfileScreen() {
                   </View>
                 </View>
                 {!isProfileComplete() && (
-                  <Text className="text-neutral-400 font-grotesk text-sm mt-3">
+                  <Text className="text-neutral-500 font-grotesk text-sm mt-3">
                     Please fill all required fields to complete your profile
                   </Text>
                 )}
@@ -467,17 +480,17 @@ export default function ProfileScreen() {
           </View>
 
           {/* Account Information Section */}
-          <View className="px-6 pb-8">
+          <View className="px-6 pb-6">
             <Text className="text-xl font-groteskBold text-black mb-4">
               Account Information
             </Text>
 
-            <Card className="bg-white border border-neutral-200 p-4">
+            <Card className="bg-white border-2 border-black p-5">
               <View className="space-y-4">
                 <View className="flex-row items-center justify-between py-2 border-b border-neutral-200">
                   <View className="flex-row items-center">
-                    <Calendar size={18} color="#a3a3a3" />
-                    <Text className="text-neutral-400 font-grotesk ml-2">
+                    <Calendar size={18} color="#000" />
+                    <Text className="text-black font-grotesk ml-2">
                       Member since
                     </Text>
                   </View>
@@ -488,8 +501,8 @@ export default function ProfileScreen() {
 
                 <View className="flex-row items-center justify-between py-2 border-b border-neutral-200">
                   <View className="flex-row items-center">
-                    <Calendar size={18} color="#a3a3a3" />
-                    <Text className="text-neutral-400 font-grotesk ml-2">
+                    <Calendar size={18} color="#000" />
+                    <Text className="text-black font-grotesk ml-2">
                       Last updated
                     </Text>
                   </View>
@@ -500,13 +513,13 @@ export default function ProfileScreen() {
 
                 <View className="flex-row items-center justify-between py-2">
                   <View className="flex-row items-center">
-                    <Key size={18} color="#a3a3a3" />
-                    <Text className="text-neutral-400 font-grotesk ml-2">
+                    <Key size={18} color="#000" />
+                    <Text className="text-black font-grotesk ml-2">
                       User ID
                     </Text>
                   </View>
                   <Text
-                    className="text-neutral-400 font-grotesk text-xs"
+                    className="text-neutral-500 font-grotesk text-xs"
                     numberOfLines={1}
                     ellipsizeMode="middle"
                   >
@@ -519,15 +532,16 @@ export default function ProfileScreen() {
 
           {/* Logout Button */}
           <View className="px-6 pb-8">
-            <Button
-              variant="solid"
-              size="md"
-              action="primary"
+            <TouchableOpacity
               onPress={handleLogout}
+              className="bg-black py-4 rounded-xl flex-row items-center justify-center"
+              activeOpacity={0.8}
             >
               <LogOut size={20} color="white" />
-              <ButtonText>Logout</ButtonText>
-            </Button>
+              <Text className="text-white font-groteskBold text-lg ml-2">
+                Logout
+              </Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </SafeAreaView>
